@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reliable Hands - Trusted Local Pros</title>
+    
+    <!-- React & ReactDOM -->
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    
+    <!-- Babel for JSX -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#4361ee',
+                        secondary: '#3f37c9',
+                        accent: '#4cc9f0',
+                        success: '#4ade80',
+                        warning: '#facc15',
+                        danger: '#f87171',
+                        dark: '#212529',
+                        light: '#f8f9fa',
+                    },
+                    fontFamily: {
+                        sans: ['Segoe UI', 'Tahoma', 'Geneva', 'Verdana', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { background-color: #f5f7fb; }
+        .hero-bg {
+            background: linear-gradient(rgba(67, 97, 238, 0.9), rgba(63, 55, 201, 0.9)), url('https://images.unsplash.com/photo-1581578021424-ebdc0b1b01c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
+            background-size: cover;
+            background-position: center;
+        }
+        .card-hover:hover { transform: translateY(-5px); box-shadow: 0 10px 20px rgba(0, 0, 0, 0.1); }
+        .fade-in { animation: fadeIn 0.3s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect } = React;
+
+        // --- DATA MODELS ---
+
+        const INITIAL_HANDYMEN = [
+            {
+                id: 1,
+                name: "Mike Rodriguez",
+                profession: "Plumber & General Contractor",
+                metrics: { onTime: 96, completion: 98, responseTime: 100, repeatCustomers: 80 },
+                hourlyRate: 85,
+                yearsExperience: 8,
+                jobsCompleted: 247,
+                location: "Springfield",
+                skills: ["Plumbing", "Leak Repair", "Toilet Install"],
+                bio: "Licensed plumber with extensive experience in residential repairs. Always arrives on time."
+            },
+            {
+                id: 2,
+                name: "Sarah Chen",
+                profession: "Electrician & Lighting",
+                metrics: { onTime: 92, completion: 95, responseTime: 98, repeatCustomers: 75 },
+                hourlyRate: 75,
+                yearsExperience: 6,
+                jobsCompleted: 182,
+                location: "Springfield",
+                skills: ["Electrical", "Lighting", "Safety Checks"],
+                bio: "Certified electrician specializing in home safety and lighting solutions."
+            },
+            {
+                id: 3,
+                name: "David Chen",
+                profession: "Carpenter & Assembly",
+                metrics: { onTime: 90, completion: 93, responseTime: 96, repeatCustomers: 70 },
+                hourlyRate: 70,
+                yearsExperience: 10,
+                jobsCompleted: 312,
+                location: "Springfield",
+                skills: ["Carpentry", "Furniture Assembly", "Shelving"],
+                bio: "Master carpenter with attention to detail. Known for precise work and finishing touches."
+            },
+            {
+                id: 4,
+                name: "Elena Martinez",
+                profession: "Painter & Decorator",
+                metrics: { onTime: 99, completion: 100, responseTime: 97, repeatCustomers: 90 },
+                hourlyRate: 90,
+                yearsExperience: 7,
+                jobsCompleted: 156,
+                location: "Springfield",
+                skills: ["Painting", "Wallpaper", "Drywall"],
+                bio: "Professional painter with an eye for detail. Prepares surfaces meticulously."
+            }
+        ];
+
+        // Logic to calculate score dynamically
+        const calculateReliability = (metrics) => {
+            const weights = { onTime: 0.35, completion: 0.35, responseTime: 0.20, repeatCustomers: 0.10 };
+            return Math.round(
+                metrics.onTime * weights.onTime +
+                metrics.completion * weights.completion +
+                metrics.responseTime * weights.responseTime +
+                metrics.repeatCustomers * weights.repeatCustomers
+            );
+        };
+
+        // --- COMPONENTS ---
+
+        const Header = ({ userType, setUserType }) => (
+            <header className="bg-gradient-to-r from-primary to-secondary text-white shadow-md sticky top-0 z-50">
+                <div className="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+                    <div className="flex items-center gap-2 text-2xl font-bold">
+                        <span className="text-3xl">🔧</span>
+                        <span>Reliable Hands</span>
+                    </div>
+                    
+                    <nav className="flex items-center gap-6 text-sm font-medium">
+                        <a href="#" className="hover:bg-white/10 px-3 py-1.5 rounded transition">Find a Pro</a>
+                        <a href="#how-it-works" className="hover:bg-white/10 px-3 py-1.5 rounded transition">How It Works</a>
+                        
+                        <div className="flex items-center bg-white/20 rounded-full px-1 p-1">
+                            <button 
+                                onClick={() => setUserType('HOMEOWNER')}
+                                className={`px-4 py-1 rounded-full transition ${userType === 'HOMEOWNER' ? 'bg-white text-primary shadow-sm' : 'text-white hover:bg-white/10'}`}
+                            >
+                                Homeowner
+                            </button>
+                            <button 
+                                onClick={() => setUserType('HANDYMAN')}
+                                className={`px-4 py-1 rounded-full transition ${userType === 'HANDYMAN' ? 'bg-white text-primary shadow-sm' : 'text-white hover:bg-white/10'}`}
+                            >
+                                Pro
+                            </button>
+                        </div>
+                    </nav>
+                </div>
+            </header>
+        );
+
+        const Hero = ({ onSearch }) => (
+            <section className="hero-bg text-white py-20 px-4 text-center">
+                <div className="max-w-4xl mx-auto">
+                    <h1 className="text-3xl md:text-5xl font-bold mb-6 drop-shadow-md">
+                        Find the Most Reliable Local Handymen
+                    </h1>
+                    <p className="text-xl md:text-2xl mb-10 text-blue-50 drop-shadow-md max-w-3xl mx-auto">
+                        Connect with verified professionals rated on actual reliability, not just reviews.
+                    </p>
+                    
+                    <div className="bg-white p-3 rounded-xl shadow-xl max-w-3xl mx-auto flex flex-col md:flex-row gap-3">
+                        <div className="flex-1 flex items-center px-4 border-2 border-transparent focus-within:border-primary rounded-lg bg-gray-50">
+                            <i className="fas fa-search text-gray-400 mr-3"></i>
+                            <input 
+                                type="text" 
+                                placeholder="What needs fixing? (e.g. plumbing, electrical)" 
+                                className="w-full py-3 bg-transparent outline-none text-gray-800 placeholder-gray-500"
+                                onChange={(e) => onSearch(e.target.value)}
+                            />
+                        </div>
+                        <button className="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-lg font-bold transition shadow-md">
+                            Search
+                        </button>
+                    </div>
+                </div>
+            </section>
+        );
+
+        const HandymanCard = ({ pro, onSelect }) => {
+            const score = calculateReliability(pro.metrics);
+            const stars = Math.min(Math.floor(score / 20), 5);
+            
+            return (
+                <div className="bg-white rounded-xl shadow-md border border-gray-100 card-hover overflow-hidden flex flex-col h-full">
+                    {/* Card Header */}
+                    <div className="bg-gradient-to-r from-primary to-accent p-6 text-white">
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <h3 className="text-xl font-bold">{pro.name}</h3>
+                                <p className="text-blue-100 text-sm">{pro.profession}</p>
+                            </div>
+                            <div className="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-lg text-center">
+                                <div className="font-bold text-xl">{score}%</div>
+                                <div className="text-[10px] uppercase tracking-wider opacity-90">Reliability</div>
+                            </div>
+                        </div>
+                        <div className="mt-2 text-yellow-300 text-sm">
+                            {'★'.repeat(stars)}{'☆'.repeat(5-stars)}
+                        </div>
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="p-6 flex flex-col flex-1 gap-4">
+                        <p className="text-gray-600 text-sm line-clamp-2">{pro.bio}</p>
+                        
+                        <div className="space-y-2 text-sm text-gray-600">
+                            <div className="flex justify-between border-b border-gray-100 pb-2">
+                                <span className="font-semibold text-gray-500">Experience</span>
+                                <span>{pro.yearsExperience} years</span>
+                            </div>
+                            <div className="flex justify-between border-b border-gray-100 pb-2">
+                                <span className="font-semibold text-gray-500">Jobs Done</span>
+                                <span>{pro.jobsCompleted}</span>
+                            </div>
+                            <div className="flex justify-between border-b border-gray-100 pb-2">
+                                <span className="font-semibold text-gray-500">Response</span>
+                                <span className="text-success font-bold">{pro.metrics.responseTime}%</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mt-2">
+                            {pro.skills.map((skill, i) => (
+                                <span key={i} className="bg-blue-50 text-primary text-xs px-2.5 py-1 rounded-full font-medium">
+                                    {skill}
+                                </span>
+                            ))}
+                        </div>
+
+                        <div className="mt-auto pt-4 flex gap-3 items-center">
+                            <div className="text-2xl font-bold text-dark">${pro.hourlyRate}<span className="text-sm font-normal text-gray-500">/hr</span></div>
+                            <button 
+                                onClick={() => onSelect(pro.id)}
+                                className="flex-1 bg-primary hover:bg-secondary text-white py-2.5 rounded-lg font-semibold transition shadow-sm"
+                            >
+                                Book Now
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        const HowItWorks = () => (
+            <section id="how-it-works" className="py-16 bg-white">
+                <div className="max-w-7xl mx-auto px-4">
+                    <h2 className="text-3xl font-bold text-center text-dark mb-12">How Reliable Hands Works</h2>
+                    <div className="grid md:grid-cols-4 gap-8 max-w-5xl mx-auto">
+                        {[
+                            { step: 1, title: "Post Job", desc: "Describe what you need done and set your budget." },
+                            { step: 2, title: "Check Scores", desc: "See verified scores based on punctuality & completion." },
+                            { step: 3, title: "Book Securely", desc: "Schedule your appointment through our platform." },
+                            { step: 4, title: "Job Done", desc: "Get quality work completed by reliable pros." }
+                        ].map((item, i) => (
+                            <div key={i} className="text-center p-6 rounded-lg hover:bg-gray-50 transition">
+                                <div className="w-12 h-12 bg-primary text-white rounded-full flex items-center justify-center text-xl font-bold mx-auto mb-4 shadow-lg">
+                                    {item.step}
+                                </div>
+                                <h3 className="font-bold text-lg mb-2 text-secondary">{item.title}</h3>
+                                <p className="text-gray-600 text-sm">{item.desc}</p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            </section>
+        );
+
+        const Sidebar = ({ handymen, selectedHandymanId, onSubmitRequest, jobs }) => {
+            const [formData, setFormData] = useState({ handymanId: '', jobType: '', description: '' });
+            const [showConf, setShowConf] = useState(false);
+
+            useEffect(() => {
+                if (selectedHandymanId) {
+                    setFormData(prev => ({ ...prev, handymanId: selectedHandymanId }));
+                }
+            }, [selectedHandymanId]);
+
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                if (!formData.handymanId || !formData.jobType || !formData.description) return;
+                const handyman = handymen.find(h => h.id === parseInt(formData.handymanId));
+                onSubmitRequest({ ...formData, handymanName: handyman.name });
+                setFormData({ handymanId: '', jobType: '', description: '' });
+                setShowConf(true);
+                setTimeout(() => setShowConf(false), 5000);
+            };
+
+            return (
+                <aside className="bg-white rounded-xl shadow-lg p-6 border border-gray-100 h-fit sticky top-24">
+                    <h3 className="text-xl font-bold mb-6 text-dark flex items-center gap-2">
+                        <i className="fas fa-paper-plane text-primary"></i> Request a Pro
+                    </h3>
+                    
+                    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Pro</label>
+                            <select 
+                                value={formData.handymanId}
+                                onChange={e => setFormData({...formData, handymanId: e.target.value})}
+                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:border-primary outline-none"
+                                required
+                            >
+                                <option value="">Select a professional...</option>
+                                {handymen.map(h => (
+                                    <option key={h.id} value={h.id}>{h.name} - {calculateReliability(h.metrics)}%</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Job Type</label>
+                            <select 
+                                value={formData.jobType}
+                                onChange={e => setFormData({...formData, jobType: e.target.value})}
+                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 focus:border-primary outline-none"
+                                required
+                            >
+                                <option value="">Select category...</option>
+                                <option value="plumbing">Plumbing</option>
+                                <option value="electrical">Electrical</option>
+                                <option value="drywall">Drywall</option>
+                                <option value="painting">Painting</option>
+                                <option value="carpentry">Carpentry</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Details</label>
+                            <textarea 
+                                value={formData.description}
+                                onChange={e => setFormData({...formData, description: e.target.value})}
+                                className="w-full p-3 border border-gray-200 rounded-lg bg-gray-50 min-h-[100px] focus:border-primary outline-none"
+                                placeholder="Describe the work needed..."
+                                required
+                            ></textarea>
+                        </div>
+                        <button type="submit" className="bg-secondary hover:bg-primary text-white font-bold py-3 rounded-lg transition shadow-md mt-2">
+                            Send Request
+                        </button>
+                    </form>
+
+                    {showConf && (
+                        <div className="mt-4 bg-green-50 text-green-700 p-4 rounded-lg border border-green-100 fade-in flex items-center gap-3">
+                            <i className="fas fa-check-circle text-xl"></i>
+                            <div>
+                                <p className="font-bold">Request Sent!</p>
+                                <p className="text-xs">Response typically in 2 hrs.</p>
+                            </div>
+                        </div>
+                    )}
+
+                    <div className="mt-8 pt-6 border-t border-gray-100">
+                        <h4 className="font-bold text-gray-800 mb-4 text-sm uppercase tracking-wide">Recent Activity</h4>
+                        {jobs.length === 0 ? (
+                            <p className="text-gray-400 text-sm italic">No requests yet.</p>
+                        ) : (
+                            <div className="space-y-3">
+                                {jobs.slice(0, 3).map(job => (
+                                    <div key={job.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 text-sm">
+                                        <div className="flex justify-between mb-1">
+                                            <span className="font-bold capitalize text-dark">{job.jobType}</span>
+                                            <span className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${
+                                                job.status === 'completed' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'
+                                            }`}>{job.status}</span>
+                                        </div>
+                                        <div className="text-gray-500 text-xs flex justify-between">
+                                            <span>{job.handymanName}</span>
+                                            <span>{job.date}</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </aside>
+            );
+        };
+
+        const Footer = () => (
+            <footer className="bg-dark text-white py-12 text-center">
+                <div className="max-w-4xl mx-auto px-4">
+                    <div className="text-3xl mb-4">🔧</div>
+                    <h3 className="text-xl font-bold mb-2">Reliable Hands</h3>
+                    <p className="text-gray-400 mb-8 max-w-lg mx-auto">Connecting homeowners with the most reliable local handymen since 2026. Rated on performance, not just promises.</p>
+                    <div className="flex justify-center gap-6 text-gray-400 mb-8">
+                        <a href="#" className="hover:text-white transition">About</a>
+                        <a href="#" className="hover:text-white transition">Careers</a>
+                        <a href="#" className="hover:text-white transition">Privacy</a>
+                        <a href="#" className="hover:text-white transition">Contact</a>
+                    </div>
+                    <div className="text-gray-600 text-sm border-t border-gray-800 pt-8">
+                        &copy; 2026 Reliable Hands. All rights reserved.
+                    </div>
+                </div>
+            </footer>
+        );
+
+        const App = () => {
+            const [userType, setUserType] = useState("HOMEOWNER");
+            const [handymen, setHandymen] = useState([]);
+            const [jobs, setJobs] = useState([]);
+            const [searchTerm, setSearchTerm] = useState("");
+            const [selectedHandymanId, setSelectedHandymanId] = useState("");
+
+            useEffect(() => {
+                const storedHandymen = localStorage.getItem('reliable_hands_pros');
+                const storedJobs = localStorage.getItem('reliable_hands_jobs');
+                
+                if (storedHandymen) setHandymen(JSON.parse(storedHandymen));
+                else {
+                    setHandymen(INITIAL_HANDYMEN);
+                    localStorage.setItem('reliable_hands_pros', JSON.stringify(INITIAL_HANDYMEN));
+                }
+
+                if (storedJobs) setJobs(JSON.parse(storedJobs));
+            }, []);
+
+            useEffect(() => {
+                if (handymen.length > 0) localStorage.setItem('reliable_hands_pros', JSON.stringify(handymen));
+                if (jobs.length > 0) localStorage.setItem('reliable_hands_jobs', JSON.stringify(jobs));
+            }, [handymen, jobs]);
+
+            const handleJobRequest = (formData) => {
+                const newJob = { id: Date.now(), ...formData, date: new Date().toLocaleDateString(), status: 'pending' };
+                setJobs([newJob, ...jobs]);
+                
+                // Simulate stat boost
+                setHandymen(prev => prev.map(h => {
+                    if (h.id === parseInt(formData.handymanId)) {
+                        return { ...h, jobsCompleted: h.jobsCompleted + 1 };
+                    }
+                    return h;
+                }));
+            };
+
+            const filteredHandymen = handymen.filter(h => 
+                h.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                h.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase())) ||
+                h.profession.toLowerCase().includes(searchTerm.toLowerCase())
+            );
+
+            const ProDashboard = () => (
+                <div className="max-w-4xl mx-auto py-12 px-4 min-h-[60vh]">
+                    <div className="bg-white p-8 rounded-xl shadow-lg border-t-4 border-primary">
+                        <h2 className="text-3xl font-bold mb-2 text-dark">Welcome back, Mike</h2>
+                        <p className="text-gray-500 mb-8">Your reliability score is trending up! 📈</p>
+                        <h3 className="font-bold text-lg mb-4">Assigned Jobs</h3>
+                        <div className="space-y-4">
+                            {jobs.filter(j => j.handymanId == 1).length === 0 && <p className="text-gray-400 italic">No active jobs.</p>}
+                            {jobs.filter(j => j.handymanId == 1).map(job => (
+                                <div key={job.id} className="border border-gray-100 p-4 rounded-lg flex flex-col sm:flex-row justify-between items-center bg-gray-50 gap-4">
+                                    <div>
+                                        <h4 className="font-bold capitalize text-dark">{job.jobType}</h4>
+                                        <p className="text-gray-600 text-sm">{job.description}</p>
+                                    </div>
+                                    <div className="flex gap-2">
+                                        {job.status === 'pending' && (
+                                            <button onClick={() => setJobs(jobs.map(j => j.id === job.id ? {...j, status: 'confirmed'} : j))} className="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm font-bold transition">Accept</button>
+                                        )}
+                                        {job.status === 'confirmed' && (
+                                            <button onClick={() => setJobs(jobs.map(j => j.id === job.id ? {...j, status: 'completed'} : j))} className="bg-success hover:bg-green-600 text-white px-4 py-2 rounded text-sm font-bold transition">Complete</button>
+                                        )}
+                                        <span className="bg-white border px-3 py-2 rounded text-sm font-bold capitalize text-gray-500">{job.status}</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            );
+
+            return (
+                <div className="min-h-screen flex flex-col font-sans text-dark">
+                    <Header userType={userType} setUserType={setUserType} />
+                    
+                    {userType === 'HANDYMAN' ? (
+                        <ProDashboard />
+                    ) : (
+                        <>
+                            <Hero onSearch={setSearchTerm} />
+                            
+                            <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-16">
+                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8 items-start">
+                                    <div className="space-y-8">
+                                        <h2 className="text-2xl font-bold border-l-4 border-primary pl-4">Top Reliable Pros Near You</h2>
+                                        
+                                        {filteredHandymen.length === 0 ? (
+                                            <div className="text-center py-16 bg-white rounded-xl shadow-sm border border-gray-100">
+                                                <i className="fas fa-search text-4xl text-gray-200 mb-4"></i>
+                                                <h3 className="text-xl font-bold text-gray-400">No pros match that search</h3>
+                                                <button onClick={() => setSearchTerm('')} className="text-primary mt-2 font-medium hover:underline">View All Pros</button>
+                                            </div>
+                                        ) : (
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                                {filteredHandymen.map(pro => (
+                                                    <HandymanCard 
+                                                        key={pro.id} 
+                                                        pro={pro} 
+                                                        onSelect={(id) => {
+                                                            setSelectedHandymanId(id);
+                                                            // Simple scroll to sidebar on mobile
+                                                            if(window.innerWidth < 1024) document.querySelector('aside').scrollIntoView({ behavior: 'smooth' });
+                                                        }} 
+                                                    />
+                                                ))}
+                                            </div>
+                                        )}
+                                    </div>
+                                    
+                                    <Sidebar 
+                                        handymen={handymen} 
+                                        selectedHandymanId={selectedHandymanId}
+                                        onSubmitRequest={handleJobRequest}
+                                        jobs={jobs}
+                                    />
+                                </div>
+                            </main>
+                            
+                            <HowItWorks />
+                        </>
+                    )}
+                    
+                    <Footer />
+                </div>
+            );
+        };
+
+        const root = ReactDOM.createRoot(document.getElementById('root'));
+        root.render(<App />);
+    </script>
+</body>
+</html>
