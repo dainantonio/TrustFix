@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reliable Hands - Investor Demo</title>
+    <title>Reliable Hands - Coming Soon</title>
     
     <!-- React & ReactDOM -->
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
@@ -28,25 +28,19 @@
                         accent: '#4cc9f0',
                         success: '#4ade80',
                         warning: '#facc15',
-                        danger: '#f87171',
                         dark: '#0f172a',
-                        light: '#f8f9fa',
                     },
                     fontFamily: {
                         sans: ['Inter', 'Segoe UI', 'sans-serif'],
                     },
                     animation: {
-                        'slide-up': 'slideUp 0.3s ease-out',
-                        'fade-in': 'fadeIn 0.2s ease-out',
+                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'bounce-slow': 'bounce 3s infinite',
                     },
                     keyframes: {
-                        slideUp: {
-                            '0%': { transform: 'translateY(20px)', opacity: '0' },
-                            '100%': { transform: 'translateY(0)', opacity: '1' },
-                        },
                         fadeIn: {
-                            '0%': { opacity: '0' },
-                            '100%': { opacity: '1' },
+                            '0%': { opacity: '0', transform: 'translateY(10px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
                         }
                     }
                 }
@@ -54,734 +48,343 @@
         }
     </script>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
-        body { background-color: #f1f5f9; font-family: 'Inter', sans-serif; }
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
+        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
         .hero-bg {
             background: linear-gradient(135deg, rgba(67, 97, 238, 0.95), rgba(63, 55, 201, 0.9)), url('https://images.unsplash.com/photo-1581578021424-ebdc0b1b01c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
             background-size: cover;
             background-position: center;
         }
-        .glass-panel {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(10px);
-        }
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #f1f1f1; }
-        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
     </style>
 </head>
 <body>
     <div id="root"></div>
 
     <script type="text/babel">
-        const { useState, useEffect, useRef } = React;
+        const { useState, useEffect } = React;
 
-        // --- MOCK DATA ---
-        const INITIAL_HANDYMEN = [
-            {
-                id: 1,
-                name: "Mike Rodriguez",
-                profession: "Plumber & Contractor",
-                metrics: { onTime: 96, completion: 98, responseTime: 100, repeatCustomers: 85, avgRating: 4.8 },
-                hourlyRate: 85,
-                yearsExperience: 12,
-                jobsCompleted: 342,
-                location: "Springfield",
-                skills: ["Leak Repair", "Pipe Fitting", "Water Heaters", "Renovation"],
-                bio: "Third-generation plumber. I treat every home like it's my own. Guaranteed clean-up after every job.",
-                reviews: [
-                    { id: 1, user: "Alice M.", rating: 5, text: "Showed up 5 mins early. Fixed the leak instantly." },
-                    { id: 2, user: "Tom K.", rating: 5, text: "Mike is a lifesaver. Highly recommend." }
-                ]
-            },
-            {
-                id: 2,
-                name: "Sarah Chen",
-                profession: "Master Electrician",
-                metrics: { onTime: 92, completion: 95, responseTime: 98, repeatCustomers: 78, avgRating: 4.7 },
-                hourlyRate: 95,
-                yearsExperience: 8,
-                jobsCompleted: 189,
-                location: "Springfield",
-                skills: ["Wiring", "Smart Home", "Panel Upgrades", "Lighting"],
-                bio: "Specializing in modern lighting and smart home integrations. Safety is my #1 priority.",
-                reviews: [
-                    { id: 1, user: "Greg P.", rating: 5, text: "Great work on the panel upgrade." },
-                    { id: 2, user: "Lisa L.", rating: 4, text: "Excellent work, slight delay in arrival but called ahead." }
-                ]
-            },
-            {
-                id: 3,
-                name: "David Miller",
-                profession: "Carpentry Specialist",
-                metrics: { onTime: 88, completion: 92, responseTime: 94, repeatCustomers: 70, avgRating: 4.5 },
-                hourlyRate: 70,
-                yearsExperience: 15,
-                jobsCompleted: 412,
-                location: "Springfield",
-                skills: ["Custom Cabinets", "Decking", "Framing", "Furniture Repair"],
-                bio: "I build things to last. Custom carpentry and woodwork restoration expert.",
-                reviews: [
-                    { id: 1, user: "Nancy R.", rating: 5, text: "Beautiful cabinet work!" }
-                ]
-            },
-            {
-                id: 4,
-                name: "Elena Martinez",
-                profession: "Interior Specialist",
-                metrics: { onTime: 99, completion: 100, responseTime: 99, repeatCustomers: 95, avgRating: 5.0 },
-                hourlyRate: 90,
-                yearsExperience: 6,
-                jobsCompleted: 156,
-                location: "Springfield",
-                skills: ["Painting", "Wallpaper", "Drywall", "Color Consult"],
-                bio: "Precision painting and interior detailing. I focus on high-end finishes and dust-free work.",
-                reviews: [
-                    { id: 1, user: "James B.", rating: 5, text: "Perfect edges. Not a drop of paint on the floor." }
-                ]
-            }
+        // --- MOCK DATA (TEASERS) ---
+        const PREVIEW_PROS = [
+            { id: 1, name: "Mike R.", role: "Plumber", score: 98, jobs: 342, img: "M" },
+            { id: 2, name: "Sarah C.", role: "Electrician", score: 96, jobs: 189, img: "S" },
+            { id: 3, name: "David M.", role: "Carpenter", score: 94, jobs: 412, img: "D" },
         ];
 
-        // --- ALGORITHMS ---
-        const calculateReliability = (metrics) => {
-            // Weighted algorithm: Punctuality & Completion are king
-            const weights = { onTime: 0.35, completion: 0.35, responseTime: 0.15, repeatCustomers: 0.15 };
-            const score = (
-                metrics.onTime * weights.onTime +
-                metrics.completion * weights.completion +
-                metrics.responseTime * weights.responseTime +
-                metrics.repeatCustomers * weights.repeatCustomers
-            );
-            return Math.min(Math.round(score), 100);
-        };
+        // --- COMPONENTS ---
 
-        // --- UI COMPONENTS ---
-        
-        // MISSING COMPONENT FIXED: Added Header definition
-        const Header = ({ userType, setUserType }) => (
-            <header className="bg-white/90 backdrop-blur-md sticky top-0 z-40 border-b border-gray-200 shadow-sm">
-                <div className="max-w-7xl mx-auto px-4 py-3 flex justify-between items-center">
-                    <div className="flex items-center gap-2 text-xl font-black text-primary tracking-tight">
-                        <i className="fas fa-hand-holding-heart"></i>
-                        <span>Reliable Hands</span>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                        <div className="bg-gray-100 p-1 rounded-lg flex text-xs font-bold uppercase tracking-wide">
-                            <button 
-                                onClick={() => setUserType('HOMEOWNER')}
-                                className={`px-4 py-2 rounded-md transition-all ${userType === 'HOMEOWNER' ? 'bg-white text-primary shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                Homeowner
-                            </button>
-                            <button 
-                                onClick={() => setUserType('HANDYMAN')}
-                                className={`px-4 py-2 rounded-md transition-all ${userType === 'HANDYMAN' ? 'bg-white text-dark shadow-sm' : 'text-gray-400 hover:text-gray-600'}`}
-                            >
-                                Pro View
-                            </button>
-                        </div>
+        const Modal = ({ isOpen, onClose, children }) => {
+            if (!isOpen) return null;
+            return (
+                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
+                        {children}
                     </div>
                 </div>
-            </header>
-        );
+            );
+        };
 
-        const Toast = ({ message, type, onClose }) => {
-            useEffect(() => {
-                const timer = setTimeout(onClose, 3000);
-                return () => clearTimeout(timer);
-            }, [onClose]);
+        const WaitlistModal = ({ isOpen, onClose }) => {
+            const [email, setEmail] = useState("");
+            const [userType, setUserType] = useState("homeowner"); // 'homeowner' or 'pro'
+            const [status, setStatus] = useState("idle"); // idle, submitting, success
 
-            const bgColors = {
-                success: 'bg-gray-900 text-white',
-                info: 'bg-blue-600 text-white',
-                error: 'bg-red-500 text-white'
+            const handleSubmit = (e) => {
+                e.preventDefault();
+                setStatus("submitting");
+                // Simulate API call
+                setTimeout(() => {
+                    setStatus("success");
+                    // In a real app, send data to Airtable/Firebase here
+                    console.log(`Captured: ${email} as ${userType}`);
+                }, 1500);
             };
 
-            return (
-                <div className={`fixed bottom-6 right-6 ${bgColors[type] || bgColors.info} px-6 py-4 rounded-lg shadow-xl flex items-center gap-3 animate-slide-up z-50 min-w-[300px]`}>
-                    <i className={`fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}`}></i>
-                    <span className="font-medium">{message}</span>
-                </div>
-            );
-        };
-
-        const Modal = ({ isOpen, onClose, children, title }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-                    <div className="bg-white rounded-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto shadow-2xl" onClick={e => e.stopPropagation()}>
-                        <div className="p-6 border-b border-gray-100 flex justify-between items-center sticky top-0 bg-white z-10">
-                            <h3 className="text-xl font-bold text-dark">{title}</h3>
-                            <button onClick={onClose} className="text-gray-400 hover:text-dark transition">
-                                <i className="fas fa-times text-xl"></i>
-                            </button>
-                        </div>
-                        <div className="p-6">
-                            {children}
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const RatingModal = ({ isOpen, onClose, onSubmit, handymanName }) => {
-            const [rating, setRating] = useState(5);
-            const [comment, setComment] = useState("");
-
             if (!isOpen) return null;
 
             return (
-                <div className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4 animate-fade-in">
-                    <div className="bg-white rounded-2xl w-full max-w-md p-6 text-center shadow-2xl">
-                        <div className="w-16 h-16 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4">
-                            <i className="fas fa-check"></i>
-                        </div>
-                        <h3 className="text-2xl font-bold mb-2">Job Complete!</h3>
-                        <p className="text-gray-600 mb-6">How was your experience with {handymanName}?</p>
-                        
-                        <div className="flex justify-center gap-2 mb-6">
-                            {[1, 2, 3, 4, 5].map(star => (
-                                <button 
-                                    key={star}
-                                    onClick={() => setRating(star)}
-                                    className={`text-3xl transition hover:scale-110 ${rating >= star ? 'text-warning' : 'text-gray-200'}`}
-                                >
-                                    ★
-                                </button>
-                            ))}
-                        </div>
-                        
-                        <textarea 
-                            className="w-full border border-gray-200 rounded-lg p-3 mb-4 focus:ring-2 focus:ring-primary outline-none"
-                            placeholder="Write a brief review..."
-                            rows="3"
-                            value={comment}
-                            onChange={e => setComment(e.target.value)}
-                        ></textarea>
-                        
-                        <button 
-                            onClick={() => onSubmit(rating, comment)}
-                            className="w-full bg-dark text-white py-3 rounded-xl font-bold hover:bg-gray-800 transition"
-                        >
-                            Submit Review
+                <Modal isOpen={isOpen} onClose={onClose}>
+                    <div className="relative">
+                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-dark">
+                            <i className="fas fa-times text-xl"></i>
                         </button>
-                    </div>
-                </div>
-            );
-        };
-
-        const HandymanProfile = ({ pro, score, onBook }) => (
-            <div className="space-y-6">
-                <div className="flex flex-col md:flex-row gap-6">
-                    <div className="w-24 h-24 bg-primary text-white text-4xl font-bold rounded-2xl flex items-center justify-center shrink-0">
-                        {pro.name.charAt(0)}
-                    </div>
-                    <div>
-                        <div className="flex items-center gap-2 mb-1">
-                            <h2 className="text-2xl font-bold">{pro.name}</h2>
-                            <span className="bg-blue-100 text-primary text-xs px-2 py-1 rounded-full font-bold">VERIFIED</span>
-                        </div>
-                        <p className="text-gray-500 mb-2">{pro.profession}</p>
-                        <div className="flex items-center gap-4 text-sm">
-                            <span className="font-bold text-dark flex items-center gap-1">
-                                <i className="fas fa-shield-alt text-primary"></i> {score}% Reliable
-                            </span>
-                            <span className="text-gray-500">•</span>
-                            <span>{pro.jobsCompleted} Jobs Done</span>
-                            <span className="text-gray-500">•</span>
-                            <span>{pro.location}</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div className="bg-gray-50 p-4 rounded-xl border border-gray-100">
-                    <h4 className="font-bold text-sm uppercase tracking-wide text-gray-500 mb-3">Performance Metrics</h4>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        <div className="bg-white p-3 rounded-lg shadow-sm text-center">
-                            <div className="text-2xl font-bold text-success">{pro.metrics.onTime}%</div>
-                            <div className="text-xs text-gray-500">On Time</div>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg shadow-sm text-center">
-                            <div className="text-2xl font-bold text-primary">{pro.metrics.completion}%</div>
-                            <div className="text-xs text-gray-500">Completion</div>
-                        </div>
-                        <div className="bg-white p-3 rounded-lg shadow-sm text-center">
-                            <div className="text-2xl font-bold text-dark">{pro.metrics.avgRating}</div>
-                            <div className="text-xs text-gray-500">Avg Rating</div>
-                        </div>
-                         <div className="bg-white p-3 rounded-lg shadow-sm text-center">
-                            <div className="text-2xl font-bold text-dark">{pro.metrics.repeatCustomers}%</div>
-                            <div className="text-xs text-gray-500">Repeat Biz</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
-                    <h4 className="font-bold text-lg mb-2">About</h4>
-                    <p className="text-gray-600 leading-relaxed">{pro.bio}</p>
-                </div>
-
-                <div>
-                    <h4 className="font-bold text-lg mb-3">Recent Reviews</h4>
-                    <div className="space-y-3">
-                        {pro.reviews.map((review, i) => (
-                            <div key={i} className="bg-white border border-gray-100 p-4 rounded-xl">
-                                <div className="flex justify-between mb-1">
-                                    <span className="font-bold text-sm">{review.user}</span>
-                                    <div className="text-warning text-sm">{'★'.repeat(review.rating)}</div>
-                                </div>
-                                <p className="text-gray-600 text-sm italic">"{review.text}"</p>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="pt-4 border-t border-gray-100 flex justify-end">
-                    <button onClick={onBook} className="bg-primary hover:bg-secondary text-white px-8 py-3 rounded-xl font-bold shadow-lg transition transform hover:-translate-y-1">
-                        Book {pro.name.split(' ')[0]} Now
-                    </button>
-                </div>
-            </div>
-        );
-
-        // --- MAIN APP ---
-
-        const App = () => {
-            // App State
-            const [userType, setUserType] = useState("HOMEOWNER");
-            const [handymen, setHandymen] = useState([]);
-            const [jobs, setJobs] = useState([]);
-            const [searchTerm, setSearchTerm] = useState("");
-            
-            // UI State
-            const [toast, setToast] = useState(null);
-            const [selectedPro, setSelectedPro] = useState(null); // For Profile Modal
-            const [reviewJobId, setReviewJobId] = useState(null); // For Rating Modal
-            const [formData, setFormData] = useState({ jobType: '', description: '' });
-
-            // Initialize Data
-            useEffect(() => {
-                const storedHandymen = localStorage.getItem('rh_handymen');
-                const storedJobs = localStorage.getItem('rh_jobs');
-                
-                if (storedHandymen) setHandymen(JSON.parse(storedHandymen));
-                else {
-                    setHandymen(INITIAL_HANDYMEN);
-                    localStorage.setItem('rh_handymen', JSON.stringify(INITIAL_HANDYMEN));
-                }
-
-                if (storedJobs) setJobs(JSON.parse(storedJobs));
-            }, []);
-
-            // Save Data
-            useEffect(() => {
-                if (handymen.length > 0) localStorage.setItem('rh_handymen', JSON.stringify(handymen));
-                if (jobs.length > 0) localStorage.setItem('rh_jobs', JSON.stringify(jobs));
-            }, [handymen, jobs]);
-
-            const showToast = (msg, type = 'success') => setToast({ message: msg, type });
-
-            // Actions
-            const handleBook = (proId) => {
-                if (!formData.jobType || !formData.description) {
-                    showToast("Please select a job type and description", "error");
-                    return;
-                }
-                const pro = handymen.find(h => h.id === proId);
-                const newJob = {
-                    id: Date.now(),
-                    handymanId: proId,
-                    handymanName: pro.name,
-                    jobType: formData.jobType,
-                    description: formData.description,
-                    date: new Date().toLocaleDateString(),
-                    status: 'pending',
-                    price: pro.hourlyRate
-                };
-                setJobs([newJob, ...jobs]);
-                setFormData({ jobType: '', description: '' });
-                setSelectedPro(null); // Close modal if open
-                showToast(`Request sent to ${pro.name}!`);
-            };
-
-            const handleAcceptJob = (jobId) => {
-                setJobs(jobs.map(j => j.id === jobId ? { ...j, status: 'confirmed' } : j));
-                showToast("Job Accepted! Added to schedule.");
-            };
-
-            const handleCompleteJob = (jobId) => {
-                setJobs(jobs.map(j => j.id === jobId ? { ...j, status: 'completed' } : j));
-                showToast("Job Completed! Payment processed.");
-            };
-
-            const handleReviewSubmit = (rating, text) => {
-                const job = jobs.find(j => j.id === reviewJobId);
-                if (!job) return;
-
-                // 1. Update Job Status
-                setJobs(jobs.map(j => j.id === reviewJobId ? { ...j, status: 'reviewed', rating } : j));
-
-                // 2. Update Handyman Stats (The "Magic" Algorithm update)
-                setHandymen(prev => prev.map(h => {
-                    if (h.id === job.handymanId) {
-                        const newReviews = [{ id: Date.now(), user: "You", rating, text }, ...h.reviews];
-                        const newCompletion = Math.min(100, h.metrics.completion + 1); // Boost completion
-                        const newRating = ((h.metrics.avgRating * h.jobsCompleted) + rating) / (h.jobsCompleted + 1);
                         
-                        return {
-                            ...h,
-                            jobsCompleted: h.jobsCompleted + 1,
-                            metrics: {
-                                ...h.metrics,
-                                completion: newCompletion,
-                                avgRating: parseFloat(newRating.toFixed(1))
-                            },
-                            reviews: newReviews
-                        };
-                    }
-                    return h;
-                }));
-
-                setReviewJobId(null);
-                showToast("Review submitted! Reliability Score updated.", "success");
-            };
-
-            const resetDemo = () => {
-                if(confirm("Reset all data for investor demo?")) {
-                    localStorage.removeItem('rh_handymen');
-                    localStorage.removeItem('rh_jobs');
-                    window.location.reload();
-                }
-            };
-
-            // --- RENDER HELPERS ---
-            
-            const filteredHandymen = handymen.filter(h => 
-                h.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                h.skills.some(s => s.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                h.profession.toLowerCase().includes(searchTerm.toLowerCase())
-            );
-
-            // Handyman View Component
-            const ProDashboard = () => (
-                <div className="max-w-4xl mx-auto py-8 px-4">
-                    <div className="bg-white rounded-2xl shadow-xl overflow-hidden mb-8">
-                        <div className="bg-dark text-white p-8">
-                            <h2 className="text-3xl font-bold mb-2">Hello, Mike 👋</h2>
-                            <p className="opacity-80">Your Reliability Score is in the top 5% of Springfield.</p>
-                        </div>
-                        <div className="p-8 grid grid-cols-2 md:grid-cols-4 gap-8">
-                            <div>
-                                <div className="text-gray-500 text-sm font-bold uppercase mb-1">Score</div>
-                                <div className="text-4xl font-black text-primary">
-                                    {calculateReliability(handymen[0].metrics)}
+                        {status === "success" ? (
+                            <div className="p-12 text-center bg-green-50">
+                                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-sm">
+                                    <i className="fas fa-check"></i>
                                 </div>
+                                <h3 className="text-2xl font-black text-dark mb-2">You're on the list!</h3>
+                                <p className="text-gray-600 mb-6">We are launching in Springfield soon. Keep an eye on your inbox for early access.</p>
+                                <button onClick={onClose} className="bg-dark text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition">
+                                    Close
+                                </button>
                             </div>
-                            <div>
-                                <div className="text-gray-500 text-sm font-bold uppercase mb-1">Active Jobs</div>
-                                <div className="text-4xl font-black text-dark">
-                                    {jobs.filter(j => j.handymanId === 1 && j.status !== 'reviewed').length}
-                                </div>
-                            </div>
-                            <div>
-                                <div className="text-gray-500 text-sm font-bold uppercase mb-1">Earnings</div>
-                                <div className="text-4xl font-black text-success">$2.4k</div>
-                            </div>
-                             <div>
-                                <div className="text-gray-500 text-sm font-bold uppercase mb-1">Views</div>
-                                <div className="text-4xl font-black text-dark">142</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <h3 className="font-bold text-xl mb-4 text-dark px-2">Job Requests</h3>
-                    <div className="space-y-4">
-                        {jobs.filter(j => j.handymanId === 1).length === 0 && (
-                            <div className="text-center py-12 bg-white rounded-xl border border-dashed border-gray-300">
-                                <p className="text-gray-400">No active jobs. Keep your score high to rank up!</p>
-                            </div>
-                        )}
-                        {jobs.filter(j => j.handymanId === 1).map(job => (
-                            <div key={job.id} className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 transition hover:shadow-md">
-                                <div className="flex-1">
-                                    <div className="flex items-center gap-3 mb-1">
-                                        <span className="font-bold text-lg text-dark">{job.jobType}</span>
-                                        <span className={`px-2 py-0.5 rounded text-xs font-bold uppercase ${
-                                            job.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                                            job.status === 'confirmed' ? 'bg-blue-100 text-blue-700' :
-                                            'bg-green-100 text-green-700'
-                                        }`}>{job.status}</span>
+                        ) : (
+                            <div className="p-8">
+                                <div className="text-center mb-8">
+                                    <div className="inline-block bg-blue-50 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
+                                        Coming Soon
                                     </div>
-                                    <p className="text-gray-600 mb-2">{job.description}</p>
-                                    <div className="text-xs text-gray-400 font-mono">ID: #{job.id} • {job.date}</div>
-                                </div>
-                                
-                                <div className="flex gap-2 w-full md:w-auto">
-                                    {job.status === 'pending' && (
-                                        <button 
-                                            onClick={() => handleAcceptJob(job.id)} 
-                                            className="flex-1 md:flex-none bg-dark text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition"
-                                        >
-                                            Accept Job
-                                        </button>
-                                    )}
-                                    {job.status === 'confirmed' && (
-                                        <button 
-                                            onClick={() => handleCompleteJob(job.id)} 
-                                            className="flex-1 md:flex-none bg-success text-white px-6 py-3 rounded-xl font-bold hover:bg-green-600 transition shadow-lg shadow-green-200"
-                                        >
-                                            Mark Complete
-                                        </button>
-                                    )}
-                                    {(job.status === 'completed' || job.status === 'reviewed') && (
-                                        <div className="flex-1 md:flex-none bg-gray-50 text-gray-400 px-6 py-3 rounded-xl font-bold border border-gray-200 text-center">
-                                            Completed
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-            );
-
-            // --- MAIN RENDER ---
-            return (
-                <div className="min-h-screen flex flex-col">
-                    {/* Header */}
-                    <Header userType={userType} setUserType={setUserType} />
-
-                    {/* Toast Notification */}
-                    {toast && <Toast message={toast.message} type={toast.type} onClose={() => setToast(null)} />}
-
-                    {/* Modals */}
-                    <Modal 
-                        isOpen={!!selectedPro} 
-                        onClose={() => setSelectedPro(null)} 
-                        title="Pro Profile"
-                    >
-                        {selectedPro && <HandymanProfile pro={selectedPro} score={calculateReliability(selectedPro.metrics)} onBook={() => handleBook(selectedPro.id)} />}
-                    </Modal>
-
-                    <RatingModal 
-                        isOpen={!!reviewJobId}
-                        onClose={() => setReviewJobId(null)}
-                        onSubmit={handleReviewSubmit}
-                        handymanName={jobs.find(j => j.id === reviewJobId)?.handymanName}
-                    />
-
-                    {/* Views */}
-                    {userType === 'HANDYMAN' ? (
-                        <ProDashboard />
-                    ) : (
-                        <>
-                            {/* Homeowner Hero */}
-                            <section className="hero-bg text-white py-24 px-4 text-center relative overflow-hidden">
-                                <div className="relative z-10 max-w-4xl mx-auto">
-                                    <div className="inline-block bg-white/20 backdrop-blur-md px-4 py-1 rounded-full text-sm font-bold mb-6 border border-white/30 animate-fade-in">
-                                        🚀 TRUSTED BY 10,000+ HOMEOWNERS
-                                    </div>
-                                    <h1 className="text-4xl md:text-6xl font-black mb-6 leading-tight drop-shadow-lg tracking-tight">
-                                        Hire Reliability,<br/>Not Just a Lower Price.
-                                    </h1>
-                                    <p className="text-xl md:text-2xl mb-10 text-blue-50/90 max-w-2xl mx-auto font-light">
-                                        The first marketplace where Handymen are ranked by <span className="font-bold text-white border-b-2 border-warning">actual performance data</span>.
+                                    <h2 className="text-3xl font-black text-dark mb-2">Get Early Access</h2>
+                                    <p className="text-gray-500">
+                                        Join 2,000+ locals waiting for the first reliability-based marketplace.
                                     </p>
-                                    
-                                    <div className="bg-white p-2 rounded-2xl shadow-2xl max-w-2xl mx-auto flex flex-col md:flex-row gap-2 transform transition hover:scale-[1.01]">
-                                        <div className="flex-1 flex items-center px-4 bg-gray-50 rounded-xl">
-                                            <i className="fas fa-search text-gray-400 mr-3"></i>
+                                </div>
+
+                                <form onSubmit={handleSubmit} className="space-y-4">
+                                    {/* Role Toggle */}
+                                    <div className="bg-gray-100 p-1 rounded-xl flex">
+                                        <button 
+                                            type="button"
+                                            onClick={() => setUserType("homeowner")}
+                                            className={`flex-1 py-3 rounded-lg text-sm font-bold transition ${userType === "homeowner" ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                                        >
+                                            I need a Pro
+                                        </button>
+                                        <button 
+                                            type="button"
+                                            onClick={() => setUserType("pro")}
+                                            className={`flex-1 py-3 rounded-lg text-sm font-bold transition ${userType === "pro" ? "bg-white text-dark shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
+                                        >
+                                            I am a Pro
+                                        </button>
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Email Address</label>
+                                        <div className="relative">
+                                            <i className="fas fa-envelope absolute left-4 top-4 text-gray-400"></i>
                                             <input 
-                                                type="text" 
-                                                placeholder="What needs fixing? (e.g. leaking sink)" 
-                                                className="w-full py-4 bg-transparent outline-none text-dark font-medium placeholder-gray-400"
-                                                onChange={(e) => setSearchTerm(e.target.value)}
+                                                type="email" 
+                                                required
+                                                placeholder="you@example.com" 
+                                                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
+                                                value={email}
+                                                onChange={(e) => setEmail(e.target.value)}
                                             />
                                         </div>
-                                        <button className="bg-primary hover:bg-secondary text-white px-10 py-4 rounded-xl font-bold text-lg transition shadow-lg">
-                                            Search Pros
-                                        </button>
-                                    </div>
-                                </div>
-                            </section>
-
-                            <main className="flex-1 max-w-7xl mx-auto w-full px-4 py-16">
-                                <div className="grid grid-cols-1 lg:grid-cols-[1fr_350px] gap-8 items-start">
-                                    {/* Left: Handyman List */}
-                                    <div className="space-y-8">
-                                        <div className="flex justify-between items-end border-b border-gray-200 pb-4">
-                                            <h2 className="text-2xl font-bold text-dark">Top Rated Pros</h2>
-                                            <span className="text-gray-500 text-sm">Sorted by Reliability Score</span>
-                                        </div>
-                                        
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                                            {filteredHandymen
-                                                .map(h => ({...h, score: calculateReliability(h.metrics)}))
-                                                .sort((a,b) => b.score - a.score)
-                                                .map(pro => (
-                                                <div key={pro.id} className="bg-white rounded-2xl shadow-sm border border-gray-100 hover:shadow-xl transition-all duration-300 group overflow-hidden flex flex-col h-full">
-                                                    <div className="p-6 bg-gradient-to-br from-white to-blue-50/50 flex flex-col flex-1">
-                                                        <div className="flex justify-between items-start mb-4">
-                                                            <div>
-                                                                <h3 className="text-xl font-bold text-dark group-hover:text-primary transition">{pro.name}</h3>
-                                                                <p className="text-sm text-gray-500 font-medium">{pro.profession}</p>
-                                                            </div>
-                                                            <div className="flex flex-col items-center">
-                                                                <div className="w-14 h-14 bg-dark text-white rounded-xl flex items-center justify-center text-xl font-black shadow-lg">
-                                                                    {pro.score}
-                                                                </div>
-                                                                <span className="text-[10px] font-bold uppercase mt-1 text-gray-400 tracking-wide">Score</span>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="space-y-3 mb-6 flex-1">
-                                                            <div className="flex items-center justify-between text-sm">
-                                                                <span className="text-gray-500">Hourly Rate</span>
-                                                                <span className="font-bold text-dark">${pro.hourlyRate}/hr</span>
-                                                            </div>
-                                                            <div className="w-full bg-gray-100 rounded-full h-1.5 overflow-hidden">
-                                                                <div className="bg-success h-full rounded-full" style={{width: `${pro.metrics.completion}%`}}></div>
-                                                            </div>
-                                                            <div className="flex justify-between text-xs text-gray-400">
-                                                                <span>{pro.metrics.completion}% Completion Rate</span>
-                                                                <span>{pro.jobsCompleted} Jobs</span>
-                                                            </div>
-                                                        </div>
-
-                                                        <div className="flex gap-2 flex-wrap mb-4">
-                                                            {pro.skills.slice(0, 3).map((s,i) => (
-                                                                <span key={i} className="text-[10px] bg-white border border-gray-200 px-2 py-1 rounded-md text-gray-600 font-medium">
-                                                                    {s}
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                    
-                                                    <div className="p-4 border-t border-gray-100 bg-white">
-                                                        <button 
-                                                            onClick={() => setSelectedPro(pro)}
-                                                            className="w-full bg-white border-2 border-primary text-primary hover:bg-primary hover:text-white py-3 rounded-xl font-bold transition duration-200"
-                                                        >
-                                                            View Profile & Book
-                                                        </button>
-                                                    </div>
-                                                </div>
-                                            ))}
-                                        </div>
                                     </div>
 
-                                    {/* Right: Quick Request Sidebar */}
-                                    <div className="bg-white rounded-2xl shadow-xl border border-gray-100 p-6 sticky top-24">
-                                        <h3 className="font-bold text-xl mb-6 flex items-center gap-2">
-                                            <div className="w-8 h-8 bg-accent/20 text-accent rounded-lg flex items-center justify-center">
-                                                <i className="fas fa-bolt"></i>
-                                            </div>
-                                            Your Activity
-                                        </h3>
-
-                                        {/* Request Form */}
-                                        <div className="mb-8">
-                                            <p className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">Quick Request</p>
-                                            <div className="space-y-3">
-                                                <select 
-                                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary outline-none"
-                                                    value={formData.jobType}
-                                                    onChange={e => setFormData({...formData, jobType: e.target.value})}
-                                                >
-                                                    <option value="">Select Job Type...</option>
-                                                    <option value="Plumbing">Plumbing</option>
-                                                    <option value="Electrical">Electrical</option>
-                                                    <option value="General">General Repair</option>
-                                                </select>
-                                                <textarea 
-                                                    className="w-full bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm focus:ring-2 focus:ring-primary outline-none"
-                                                    rows="2"
-                                                    placeholder="Describe details..."
-                                                    value={formData.description}
-                                                    onChange={e => setFormData({...formData, description: e.target.value})}
-                                                ></textarea>
-                                                <button 
-                                                    className="w-full bg-gray-900 text-white py-3 rounded-xl font-bold text-sm hover:bg-black transition"
-                                                    onClick={() => {
-                                                        // Just finds the first pro for quick add demo
-                                                        handleBook(handymen[0].id);
-                                                    }}
-                                                >
-                                                    Auto-Match Pro
-                                                </button>
-                                            </div>
-                                        </div>
-
-                                        {/* Activity Feed */}
-                                        <div>
-                                            <p className="text-xs font-bold text-gray-400 uppercase mb-3 tracking-wide">Ongoing Jobs</p>
-                                            {jobs.length === 0 ? (
-                                                <div className="text-center py-6 bg-gray-50 rounded-lg border border-dashed border-gray-200">
-                                                    <p className="text-gray-400 text-sm">No active jobs</p>
-                                                </div>
-                                            ) : (
-                                                <div className="space-y-3">
-                                                    {jobs.map(job => (
-                                                        <div key={job.id} className="bg-gray-50 p-3 rounded-lg border border-gray-100 transition hover:bg-white hover:shadow-sm">
-                                                            <div className="flex justify-between items-center mb-1">
-                                                                <span className="font-bold text-sm text-dark">{job.jobType}</span>
-                                                                <span className={`text-[10px] px-1.5 py-0.5 rounded font-bold uppercase ${
-                                                                    job.status === 'completed' ? 'bg-green-100 text-green-700' : 
-                                                                    job.status === 'reviewed' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'
-                                                                }`}>
-                                                                    {job.status}
-                                                                </span>
-                                                            </div>
-                                                            <div className="text-xs text-gray-500 mb-2">
-                                                                Pro: {job.handymanName}
-                                                            </div>
-                                                            {job.status === 'completed' && (
-                                                                <button 
-                                                                    onClick={() => setReviewJobId(job.id)}
-                                                                    className="w-full bg-warning/20 text-yellow-700 hover:bg-warning hover:text-black py-1.5 rounded text-xs font-bold transition"
-                                                                >
-                                                                    Leave Review
-                                                                </button>
-                                                            )}
-                                                            {job.status === 'reviewed' && (
-                                                                <div className="flex text-warning text-xs">
-                                                                    {'★'.repeat(job.rating)}
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    ))}
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            </main>
-                        </>
-                    )}
-
-                    {/* Footer / Admin Controls */}
-                    <footer className="bg-dark text-gray-400 py-12 mt-auto">
-                        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-6">
-                            <div className="text-center md:text-left">
-                                <div className="text-2xl font-bold text-white mb-2">Reliable Hands</div>
-                                <p className="text-sm opacity-60">© 2026 Investor Demo Build v1.0</p>
+                                    <button 
+                                        type="submit" 
+                                        disabled={status === "submitting"}
+                                        className="w-full bg-primary hover:bg-secondary text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-200 transition transform hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed"
+                                    >
+                                        {status === "submitting" ? (
+                                            <span><i className="fas fa-circle-notch fa-spin mr-2"></i> Joining...</span>
+                                        ) : (
+                                            "Join Waitlist"
+                                        )}
+                                    </button>
+                                </form>
+                                <p className="text-center text-xs text-gray-400 mt-4">
+                                    <i className="fas fa-lock mr-1"></i> No spam. Unsubscribe anytime.
+                                </p>
                             </div>
-                            <div className="flex gap-6 text-sm font-medium">
-                                <a href="#" className="hover:text-white transition">About</a>
-                                <a href="#" className="hover:text-white transition">Privacy</a>
-                                <a href="#" className="hover:text-white transition">Terms</a>
+                        )}
+                    </div>
+                </Modal>
+            );
+        };
+
+        const App = () => {
+            const [isModalOpen, setModalOpen] = useState(false);
+            const openModal = () => setModalOpen(true);
+
+            return (
+                <div className="min-h-screen flex flex-col bg-white">
+                    {/* Header */}
+                    <nav className="fixed w-full z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
+                        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
+                            <div className="flex items-center gap-2 text-xl font-black text-primary tracking-tight">
+                                <i className="fas fa-hand-holding-heart"></i>
+                                <span>Reliable Hands</span>
                             </div>
                             <button 
-                                onClick={resetDemo}
-                                className="bg-white/10 hover:bg-red-500/20 text-white/50 hover:text-red-400 px-4 py-2 rounded-lg text-xs font-mono transition border border-transparent hover:border-red-500/50"
+                                onClick={openModal}
+                                className="bg-dark text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition"
                             >
-                                <i className="fas fa-trash-alt mr-2"></i>RESET DEMO DATA
+                                Get Early Access
                             </button>
                         </div>
+                    </nav>
+
+                    {/* Hero */}
+                    <header className="hero-bg text-white pt-32 pb-24 px-4 text-center relative overflow-hidden">
+                        <div className="relative z-10 max-w-4xl mx-auto animate-fade-in">
+                            <div className="inline-block bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold mb-8 border border-white/30 text-blue-50">
+                                <i className="fas fa-star text-warning mr-2"></i>
+                                COMING SOON TO SPRINGFIELD
+                            </div>
+                            
+                            <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight drop-shadow-lg tracking-tight">
+                                Stop Gambling on<br/>
+                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-100 to-white">Local Handymen.</span>
+                            </h1>
+                            
+                            <p className="text-xl md:text-2xl mb-12 text-blue-100/90 max-w-2xl mx-auto font-light leading-relaxed">
+                                The only marketplace where pros are ranked by <strong className="text-white border-b-2 border-warning">Reliability Scores</strong>, not just 5-star reviews.
+                            </p>
+                            
+                            {/* CTA Box */}
+                            <div className="bg-white p-2 rounded-2xl shadow-2xl max-w-xl mx-auto flex flex-col sm:flex-row gap-2 transform transition hover:scale-[1.01]">
+                                <div className="flex-1 flex items-center px-6 py-3 sm:py-0 bg-gray-50 rounded-xl">
+                                    <i className="fas fa-map-marker-alt text-gray-400 mr-3"></i>
+                                    <input 
+                                        type="text" 
+                                        placeholder="Enter your zip code..." 
+                                        className="w-full bg-transparent outline-none text-dark font-medium placeholder-gray-400 py-3"
+                                        onClick={openModal} // Trigger modal on click
+                                    />
+                                </div>
+                                <button 
+                                    onClick={openModal}
+                                    className="bg-primary hover:bg-secondary text-white px-8 py-4 rounded-xl font-bold text-lg transition shadow-lg whitespace-nowrap"
+                                >
+                                    Find a Pro
+                                </button>
+                            </div>
+                            
+                            <p className="mt-6 text-sm text-blue-200/80 font-medium">
+                                <i className="fas fa-check-circle mr-1"></i> Vetted Pros
+                                <span className="mx-4">•</span>
+                                <i className="fas fa-check-circle mr-1"></i> Money-Back Guarantee
+                            </p>
+                        </div>
+                    </header>
+
+                    {/* Social Proof / Teaser */}
+                    <section className="py-20 px-4 bg-white">
+                        <div className="max-w-6xl mx-auto">
+                            <div className="text-center mb-16">
+                                <h2 className="text-3xl font-black text-dark mb-4">Meet Your New Favorites</h2>
+                                <p className="text-gray-500 max-w-2xl mx-auto">
+                                    We've already vetted the top 50 pros in the area. Join the waitlist to book them first.
+                                </p>
+                            </div>
+
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                {PREVIEW_PROS.map(pro => (
+                                    <div key={pro.id} className="group bg-white rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
+                                        {/* Blur Overlay to encourage signup */}
+                                        <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
+                                            <button 
+                                                onClick={openModal}
+                                                className="bg-dark text-white px-6 py-3 rounded-full font-bold shadow-xl transform scale-90 group-hover:scale-100 transition"
+                                            >
+                                                Join to Book
+                                            </button>
+                                        </div>
+
+                                        <div className="p-8 text-center border-b border-gray-50">
+                                            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500 rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-4 shadow-inner">
+                                                {pro.img}
+                                            </div>
+                                            <h3 className="text-xl font-bold text-dark">{pro.name}</h3>
+                                            <p className="text-primary font-medium text-sm mb-4">{pro.role}</p>
+                                            
+                                            <div className="inline-flex items-center bg-dark text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg">
+                                                {pro.score}% Reliable
+                                            </div>
+                                        </div>
+                                        <div className="p-4 bg-gray-50 flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wide">
+                                            <span>{pro.jobs} Jobs Done</span>
+                                            <span>Verified <i className="fas fa-check-circle text-blue-500 ml-1"></i></span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* How It Works */}
+                    <section className="py-20 px-4 bg-gray-50 border-t border-gray-200">
+                        <div className="max-w-7xl mx-auto">
+                            <div className="grid md:grid-cols-2 gap-16 items-center">
+                                <div>
+                                    <div className="inline-block bg-white border border-gray-200 text-gray-500 px-3 py-1 rounded-full text-xs font-bold uppercase mb-6">
+                                        The Problem
+                                    </div>
+                                    <h2 className="text-4xl font-black text-dark mb-6 leading-tight">
+                                        Why is hiring a handyman <span className="text-primary">so stressful?</span>
+                                    </h2>
+                                    <p className="text-lg text-gray-600 mb-8 leading-relaxed">
+                                        Most platforms sort by who pays the most for ads, or who has the cheapest hourly rate. The result? You get ghosted, overcharged, or poor work.
+                                    </p>
+                                    <div className="space-y-4">
+                                        {[
+                                            "We track on-time arrival rates.",
+                                            "We track job completion percentages.",
+                                            "Real performance data, not just reviews.",
+                                            "Automated payments only when you're happy."
+                                        ].map((item, i) => (
+                                            <div key={i} className="flex items-center gap-4">
+                                                <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
+                                                    <i className="fas fa-check text-sm"></i>
+                                                </div>
+                                                <span className="font-medium text-dark">{item}</span>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                                <div className="relative">
+                                    <div className="absolute -inset-4 bg-gradient-to-r from-primary to-accent rounded-full opacity-20 blur-2xl animate-pulse"></div>
+                                    <div className="relative bg-white p-8 rounded-3xl shadow-2xl border border-gray-100">
+                                        <div className="flex items-center gap-4 mb-8 border-b border-gray-100 pb-6">
+                                            <div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center text-xl font-bold">
+                                                98
+                                            </div>
+                                            <div>
+                                                <div className="font-black text-dark text-lg">Reliability Score</div>
+                                                <div className="text-gray-500 text-sm">The new standard for trust.</div>
+                                            </div>
+                                        </div>
+                                        <div className="space-y-4">
+                                            <div>
+                                                <div className="flex justify-between text-sm font-bold mb-1">
+                                                    <span className="text-gray-600">On-Time Arrival</span>
+                                                    <span className="text-green-600">99%</span>
+                                                </div>
+                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-green-500 w-[99%]"></div>
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="flex justify-between text-sm font-bold mb-1">
+                                                    <span className="text-gray-600">Job Completion</span>
+                                                    <span className="text-blue-600">100%</span>
+                                                </div>
+                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                                                    <div className="h-full bg-blue-500 w-full"></div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </section>
+
+                    {/* Footer */}
+                    <footer className="bg-dark text-white py-12 border-t border-gray-800">
+                        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
+                            <div className="flex items-center gap-2 text-xl font-black tracking-tight">
+                                <i className="fas fa-hand-holding-heart text-gray-400"></i>
+                                <span>Reliable Hands</span>
+                            </div>
+                            <div className="text-gray-400 text-sm">
+                                &copy; 2026 Reliable Hands Inc.
+                            </div>
+                            <div className="flex gap-6">
+                                <a href="#" className="text-gray-400 hover:text-white transition"><i className="fab fa-twitter"></i></a>
+                                <a href="#" className="text-gray-400 hover:text-white transition"><i className="fab fa-instagram"></i></a>
+                                <a href="#" className="text-gray-400 hover:text-white transition"><i className="fab fa-facebook"></i></a>
+                            </div>
+                        </div>
                     </footer>
+
+                    {/* Waitlist Modal Logic */}
+                    <WaitlistModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} />
                 </div>
             );
         };
