@@ -1,396 +1,194 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Reliable Hands - Coming Soon</title>
-    
-    <!-- React & ReactDOM -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
-    
-    <!-- Babel for JSX -->
-    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <!-- Tailwind CSS -->
-    <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Font Awesome -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrustFix | Local Pros, AI Reliability</title>
 
-    <script>
-        tailwind.config = {
-            theme: {
-                extend: {
-                    colors: {
-                        primary: '#4361ee',
-                        secondary: '#3f37c9',
-                        accent: '#4cc9f0',
-                        success: '#4ade80',
-                        warning: '#facc15',
-                        dark: '#0f172a',
-                    },
-                    fontFamily: {
-                        sans: ['Inter', 'Segoe UI', 'sans-serif'],
-                    },
-                    animation: {
-                        'fade-in': 'fadeIn 0.5s ease-out',
-                        'bounce-slow': 'bounce 3s infinite',
-                    },
-                    keyframes: {
-                        fadeIn: {
-                            '0%': { opacity: '0', transform: 'translateY(10px)' },
-                            '100%': { opacity: '1', transform: 'translateY(0)' },
-                        }
-                    }
-                }
-            }
-        }
-    </script>
-    <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;800&display=swap');
-        body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
-        .hero-bg {
-            background: linear-gradient(135deg, rgba(67, 97, 238, 0.95), rgba(63, 55, 201, 0.9)), url('https://images.unsplash.com/photo-1581578021424-ebdc0b1b01c6?ixlib=rb-4.0.3&auto=format&fit=crop&w=1950&q=80');
-            background-size: cover;
-            background-position: center;
-        }
-    </style>
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap');
+    body { font-family: Inter, system-ui, -apple-system, sans-serif; }
+    .hero-gradient {
+      background: radial-gradient(circle at 10% 20%, rgba(59,130,246,0.35), transparent 35%),
+                  radial-gradient(circle at 90% 10%, rgba(45,212,191,0.3), transparent 30%),
+                  linear-gradient(145deg, #0f172a 0%, #111827 50%, #1e293b 100%);
+    }
+  </style>
 </head>
-<body>
-    <div id="root"></div>
+<body class="bg-slate-50 text-slate-900">
+  <div id="root"></div>
 
-    <script type="text/babel">
-        const { useState, useEffect } = React;
+  <script type="text/babel">
+    const localPros = [
+      { name: 'Maya Plumbing Co.', trade: 'Plumber', score: 98, eta: '32m', jobs: 214, local: 'Northside' },
+      { name: 'Riverside Electric', trade: 'Electrician', score: 96, eta: '41m', jobs: 167, local: 'Downtown' },
+      { name: 'Evergreen Home Repair', trade: 'Handyman', score: 95, eta: '27m', jobs: 289, local: 'East End' },
+    ];
 
-        // --- MOCK DATA (TEASERS) ---
-        const PREVIEW_PROS = [
-            { id: 1, name: "Mike R.", role: "Plumber", score: 98, jobs: 342, img: "M" },
-            { id: 2, name: "Sarah C.", role: "Electrician", score: 96, jobs: 189, img: "S" },
-            { id: 3, name: "David M.", role: "Carpenter", score: 94, jobs: 412, img: "D" },
-        ];
+    const issueLibrary = {
+      'burst pipe': {
+        urgency: 'High',
+        firstStep: 'Shut off water and isolate the affected line.',
+        aiAction: 'Dispatch top 3 plumbers within 5 miles, prioritize rapid ETA + emergency completion history.'
+      },
+      'no power': {
+        urgency: 'High',
+        firstStep: 'Check breaker panel and isolate non-essential loads.',
+        aiAction: 'Route licensed electricians, require same-day diagnostic acceptance.'
+      },
+      'water heater': {
+        urgency: 'Medium',
+        firstStep: 'Disable heater power source and inspect leak points.',
+        aiAction: 'Rank pros by replacement lead time, warranty experience, and parts readiness.'
+      }
+    };
 
-        // --- COMPONENTS ---
+    function AIPlanner() {
+      const [issue, setIssue] = React.useState('burst pipe');
+      const [zip, setZip] = React.useState('01103');
+      const current = issueLibrary[issue];
 
-        const Modal = ({ isOpen, onClose, children }) => {
-            if (!isOpen) return null;
-            return (
-                <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-                    <div className="bg-white rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden" onClick={e => e.stopPropagation()}>
-                        {children}
-                    </div>
+      return (
+        <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+          <div className="flex items-center justify-between gap-4">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">AI Service Copilot</p>
+              <h3 className="mt-1 text-xl font-extrabold">Plan and match a job in seconds</h3>
+            </div>
+            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Local-first routing</span>
+          </div>
+
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            <label className="text-sm font-semibold text-slate-700">Issue type
+              <select value={issue} onChange={(e) => setIssue(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2">
+                <option value="burst pipe">Burst pipe</option>
+                <option value="no power">No power</option>
+                <option value="water heater">Water heater failure</option>
+              </select>
+            </label>
+
+            <label className="text-sm font-semibold text-slate-700">ZIP code
+              <input value={zip} onChange={(e) => setZip(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2" />
+            </label>
+          </div>
+
+          <div className="mt-5 rounded-xl bg-slate-900 p-4 text-slate-100">
+            <p><strong>Urgency:</strong> {current.urgency}</p>
+            <p className="mt-2"><strong>Immediate step:</strong> {current.firstStep}</p>
+            <p className="mt-2"><strong>AI dispatch logic:</strong> {current.aiAction}</p>
+            <p className="mt-2 text-xs text-slate-300">Zip context: {zip}. Matching results prioritize licensed pros from the nearest local zones.</p>
+          </div>
+        </section>
+      );
+    }
+
+    function App() {
+      const [waitlistEmail, setWaitlistEmail] = React.useState('');
+      const [joined, setJoined] = React.useState(false);
+
+      const onJoin = (e) => {
+        e.preventDefault();
+        if (!waitlistEmail) return;
+        setJoined(true);
+      };
+
+      return (
+        <div>
+          <header className="hero-gradient text-white">
+            <div className="mx-auto max-w-6xl px-6 py-16 md:py-24">
+              <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">
+                Reliable Hands, Reinvented for Locals
+              </p>
+              <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-6xl">
+                TrustFix helps homeowners hire local pros with AI-verified reliability.
+              </h1>
+              <p className="mt-5 max-w-3xl text-lg text-slate-200">
+                Angie-style discovery, but better for your neighborhood: transparent reliability scores, faster response times, and guided jobs from intake to resolution.
+              </p>
+
+              <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                {[
+                  ['On-time arrivals', '96%'],
+                  ['Local jobs completed', '10k+'],
+                  ['Avg. first response', '<8 min'],
+                  ['Disputes resolved', '<24h'],
+                ].map(([k, v]) => (
+                  <div key={k} className="rounded-xl bg-white/10 p-4 ring-1 ring-white/20 backdrop-blur-sm">
+                    <p className="text-2xl font-extrabold">{v}</p>
+                    <p className="text-sm text-slate-200">{k}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </header>
+
+          <main className="mx-auto max-w-6xl space-y-12 px-6 py-12">
+            <section className="grid gap-6 lg:grid-cols-2">
+              <AIPlanner />
+
+              <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Live local leaderboard</p>
+                <h3 className="mt-1 text-xl font-extrabold">Top trusted pros near you</h3>
+                <div className="mt-5 space-y-3">
+                  {localPros.map((pro) => (
+                    <article key={pro.name} className="rounded-xl border border-slate-200 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-bold">{pro.name}</p>
+                          <p className="text-sm text-slate-600">{pro.trade} • {pro.local}</p>
+                        </div>
+                        <div className="rounded-lg bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700">Score {pro.score}</div>
+                      </div>
+                      <div className="mt-2 text-sm text-slate-600">ETA {pro.eta} • {pro.jobs} completed jobs</div>
+                    </article>
+                  ))}
                 </div>
-            );
-        };
+              </section>
+            </section>
 
-        const WaitlistModal = ({ isOpen, onClose }) => {
-            const [email, setEmail] = useState("");
-            const [userType, setUserType] = useState("homeowner"); // 'homeowner' or 'pro'
-            const [status, setStatus] = useState("idle"); // idle, submitting, success
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <h3 className="text-xl font-extrabold">How TrustFix beats legacy directories</h3>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                {[
+                  ['Real performance data', 'Scoring reflects arrivals, completions, callback rate, and homeowner confirmations.'],
+                  ['AI-guided fulfillment', 'Agents monitor jobs and trigger proactive updates when milestones slip.'],
+                  ['Local economy focus', 'Neighborhood pros are promoted for consistency, not ad budget size.'],
+                ].map(([title, desc]) => (
+                  <div key={title} className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+                    <p className="font-bold">{title}</p>
+                    <p className="mt-2 text-sm text-slate-700">{desc}</p>
+                  </div>
+                ))}
+              </div>
+            </section>
 
-            const handleSubmit = (e) => {
-                e.preventDefault();
-                setStatus("submitting");
-                // Simulate API call
-                setTimeout(() => {
-                    setStatus("success");
-                    // In a real app, send data to Airtable/Firebase here
-                    console.log(`Captured: ${email} as ${userType}`);
-                }, 1500);
-            };
+            <section className="rounded-2xl bg-slate-900 p-8 text-white">
+              <h3 className="text-2xl font-extrabold">Join the Springfield launch waitlist</h3>
+              <p className="mt-2 text-slate-300">Get early homeowner access or bring your local service business onto the platform.</p>
+              <form onSubmit={onJoin} className="mt-5 flex flex-col gap-3 md:flex-row">
+                <input
+                  type="email"
+                  required
+                  placeholder="you@example.com"
+                  value={waitlistEmail}
+                  onChange={(e) => setWaitlistEmail(e.target.value)}
+                  className="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-white placeholder:text-slate-400"
+                />
+                <button className="rounded-lg bg-indigo-500 px-5 py-3 font-bold hover:bg-indigo-400">Request early access</button>
+              </form>
+              {joined && <p className="mt-3 text-sm text-emerald-300">You are in. We will send your invite before public launch.</p>}
+            </section>
+          </main>
+        </div>
+      );
+    }
 
-            if (!isOpen) return null;
-
-            return (
-                <Modal isOpen={isOpen} onClose={onClose}>
-                    <div className="relative">
-                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-400 hover:text-dark">
-                            <i className="fas fa-times text-xl"></i>
-                        </button>
-                        
-                        {status === "success" ? (
-                            <div className="p-12 text-center bg-green-50">
-                                <div className="w-20 h-20 bg-green-100 text-green-600 rounded-full flex items-center justify-center text-4xl mx-auto mb-6 shadow-sm">
-                                    <i className="fas fa-check"></i>
-                                </div>
-                                <h3 className="text-2xl font-black text-dark mb-2">You're on the list!</h3>
-                                <p className="text-gray-600 mb-6">We are launching in Springfield soon. Keep an eye on your inbox for early access.</p>
-                                <button onClick={onClose} className="bg-dark text-white px-8 py-3 rounded-xl font-bold hover:bg-black transition">
-                                    Close
-                                </button>
-                            </div>
-                        ) : (
-                            <div className="p-8">
-                                <div className="text-center mb-8">
-                                    <div className="inline-block bg-blue-50 text-primary px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider mb-3">
-                                        Coming Soon
-                                    </div>
-                                    <h2 className="text-3xl font-black text-dark mb-2">Get Early Access</h2>
-                                    <p className="text-gray-500">
-                                        Join 2,000+ locals waiting for the first reliability-based marketplace.
-                                    </p>
-                                </div>
-
-                                <form onSubmit={handleSubmit} className="space-y-4">
-                                    {/* Role Toggle */}
-                                    <div className="bg-gray-100 p-1 rounded-xl flex">
-                                        <button 
-                                            type="button"
-                                            onClick={() => setUserType("homeowner")}
-                                            className={`flex-1 py-3 rounded-lg text-sm font-bold transition ${userType === "homeowner" ? "bg-white text-primary shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                                        >
-                                            I need a Pro
-                                        </button>
-                                        <button 
-                                            type="button"
-                                            onClick={() => setUserType("pro")}
-                                            className={`flex-1 py-3 rounded-lg text-sm font-bold transition ${userType === "pro" ? "bg-white text-dark shadow-sm" : "text-gray-500 hover:text-gray-700"}`}
-                                        >
-                                            I am a Pro
-                                        </button>
-                                    </div>
-
-                                    <div>
-                                        <label className="block text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Email Address</label>
-                                        <div className="relative">
-                                            <i className="fas fa-envelope absolute left-4 top-4 text-gray-400"></i>
-                                            <input 
-                                                type="email" 
-                                                required
-                                                placeholder="you@example.com" 
-                                                className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white outline-none transition"
-                                                value={email}
-                                                onChange={(e) => setEmail(e.target.value)}
-                                            />
-                                        </div>
-                                    </div>
-
-                                    <button 
-                                        type="submit" 
-                                        disabled={status === "submitting"}
-                                        className="w-full bg-primary hover:bg-secondary text-white py-4 rounded-xl font-bold text-lg shadow-lg shadow-blue-200 transition transform hover:-translate-y-1 disabled:opacity-70 disabled:cursor-not-allowed"
-                                    >
-                                        {status === "submitting" ? (
-                                            <span><i className="fas fa-circle-notch fa-spin mr-2"></i> Joining...</span>
-                                        ) : (
-                                            "Join Waitlist"
-                                        )}
-                                    </button>
-                                </form>
-                                <p className="text-center text-xs text-gray-400 mt-4">
-                                    <i className="fas fa-lock mr-1"></i> No spam. Unsubscribe anytime.
-                                </p>
-                            </div>
-                        )}
-                    </div>
-                </Modal>
-            );
-        };
-
-        const App = () => {
-            const [isModalOpen, setModalOpen] = useState(false);
-            const openModal = () => setModalOpen(true);
-
-            return (
-                <div className="min-h-screen flex flex-col bg-white">
-                    {/* Header */}
-                    <nav className="fixed w-full z-30 bg-white/80 backdrop-blur-md border-b border-gray-100">
-                        <div className="max-w-7xl mx-auto px-4 py-4 flex justify-between items-center">
-                            <div className="flex items-center gap-2 text-xl font-black text-primary tracking-tight">
-                                <i className="fas fa-hand-holding-heart"></i>
-                                <span>Reliable Hands</span>
-                            </div>
-                            <button 
-                                onClick={openModal}
-                                className="bg-dark text-white px-5 py-2 rounded-lg font-bold text-sm hover:bg-gray-800 transition"
-                            >
-                                Get Early Access
-                            </button>
-                        </div>
-                    </nav>
-
-                    {/* Hero */}
-                    <header className="hero-bg text-white pt-32 pb-24 px-4 text-center relative overflow-hidden">
-                        <div className="relative z-10 max-w-4xl mx-auto animate-fade-in">
-                            <div className="inline-block bg-white/20 backdrop-blur-md px-4 py-1.5 rounded-full text-xs font-bold mb-8 border border-white/30 text-blue-50">
-                                <i className="fas fa-star text-warning mr-2"></i>
-                                COMING SOON TO SPRINGFIELD
-                            </div>
-                            
-                            <h1 className="text-5xl md:text-7xl font-black mb-6 leading-tight drop-shadow-lg tracking-tight">
-                                Stop Gambling on<br/>
-                                <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-100 to-white">Local Handymen.</span>
-                            </h1>
-                            
-                            <p className="text-xl md:text-2xl mb-12 text-blue-100/90 max-w-2xl mx-auto font-light leading-relaxed">
-                                The only marketplace where pros are ranked by <strong className="text-white border-b-2 border-warning">Reliability Scores</strong>, not just 5-star reviews.
-                            </p>
-                            
-                            {/* CTA Box */}
-                            <div className="bg-white p-2 rounded-2xl shadow-2xl max-w-xl mx-auto flex flex-col sm:flex-row gap-2 transform transition hover:scale-[1.01]">
-                                <div className="flex-1 flex items-center px-6 py-3 sm:py-0 bg-gray-50 rounded-xl">
-                                    <i className="fas fa-map-marker-alt text-gray-400 mr-3"></i>
-                                    <input 
-                                        type="text" 
-                                        placeholder="Enter your zip code..." 
-                                        className="w-full bg-transparent outline-none text-dark font-medium placeholder-gray-400 py-3"
-                                        onClick={openModal} // Trigger modal on click
-                                    />
-                                </div>
-                                <button 
-                                    onClick={openModal}
-                                    className="bg-primary hover:bg-secondary text-white px-8 py-4 rounded-xl font-bold text-lg transition shadow-lg whitespace-nowrap"
-                                >
-                                    Find a Pro
-                                </button>
-                            </div>
-                            
-                            <p className="mt-6 text-sm text-blue-200/80 font-medium">
-                                <i className="fas fa-check-circle mr-1"></i> Vetted Pros
-                                <span className="mx-4">•</span>
-                                <i className="fas fa-check-circle mr-1"></i> Money-Back Guarantee
-                            </p>
-                        </div>
-                    </header>
-
-                    {/* Social Proof / Teaser */}
-                    <section className="py-20 px-4 bg-white">
-                        <div className="max-w-6xl mx-auto">
-                            <div className="text-center mb-16">
-                                <h2 className="text-3xl font-black text-dark mb-4">Meet Your New Favorites</h2>
-                                <p className="text-gray-500 max-w-2xl mx-auto">
-                                    We've already vetted the top 50 pros in the area. Join the waitlist to book them first.
-                                </p>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                                {PREVIEW_PROS.map(pro => (
-                                    <div key={pro.id} className="group bg-white rounded-2xl border border-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden relative">
-                                        {/* Blur Overlay to encourage signup */}
-                                        <div className="absolute inset-0 bg-white/10 backdrop-blur-[2px] opacity-0 group-hover:opacity-100 transition-opacity z-10 flex items-center justify-center">
-                                            <button 
-                                                onClick={openModal}
-                                                className="bg-dark text-white px-6 py-3 rounded-full font-bold shadow-xl transform scale-90 group-hover:scale-100 transition"
-                                            >
-                                                Join to Book
-                                            </button>
-                                        </div>
-
-                                        <div className="p-8 text-center border-b border-gray-50">
-                                            <div className="w-20 h-20 bg-gradient-to-br from-gray-100 to-gray-200 text-gray-500 rounded-full flex items-center justify-center text-2xl font-black mx-auto mb-4 shadow-inner">
-                                                {pro.img}
-                                            </div>
-                                            <h3 className="text-xl font-bold text-dark">{pro.name}</h3>
-                                            <p className="text-primary font-medium text-sm mb-4">{pro.role}</p>
-                                            
-                                            <div className="inline-flex items-center bg-dark text-white px-4 py-1.5 rounded-full text-sm font-bold shadow-lg">
-                                                {pro.score}% Reliable
-                                            </div>
-                                        </div>
-                                        <div className="p-4 bg-gray-50 flex justify-between text-xs font-bold text-gray-400 uppercase tracking-wide">
-                                            <span>{pro.jobs} Jobs Done</span>
-                                            <span>Verified <i className="fas fa-check-circle text-blue-500 ml-1"></i></span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* How It Works */}
-                    <section className="py-20 px-4 bg-gray-50 border-t border-gray-200">
-                        <div className="max-w-7xl mx-auto">
-                            <div className="grid md:grid-cols-2 gap-16 items-center">
-                                <div>
-                                    <div className="inline-block bg-white border border-gray-200 text-gray-500 px-3 py-1 rounded-full text-xs font-bold uppercase mb-6">
-                                        The Problem
-                                    </div>
-                                    <h2 className="text-4xl font-black text-dark mb-6 leading-tight">
-                                        Why is hiring a handyman <span className="text-primary">so stressful?</span>
-                                    </h2>
-                                    <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-                                        Most platforms sort by who pays the most for ads, or who has the cheapest hourly rate. The result? You get ghosted, overcharged, or poor work.
-                                    </p>
-                                    <div className="space-y-4">
-                                        {[
-                                            "We track on-time arrival rates.",
-                                            "We track job completion percentages.",
-                                            "Real performance data, not just reviews.",
-                                            "Automated payments only when you're happy."
-                                        ].map((item, i) => (
-                                            <div key={i} className="flex items-center gap-4">
-                                                <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center shrink-0">
-                                                    <i className="fas fa-check text-sm"></i>
-                                                </div>
-                                                <span className="font-medium text-dark">{item}</span>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div className="relative">
-                                    <div className="absolute -inset-4 bg-gradient-to-r from-primary to-accent rounded-full opacity-20 blur-2xl animate-pulse"></div>
-                                    <div className="relative bg-white p-8 rounded-3xl shadow-2xl border border-gray-100">
-                                        <div className="flex items-center gap-4 mb-8 border-b border-gray-100 pb-6">
-                                            <div className="w-12 h-12 bg-primary text-white rounded-xl flex items-center justify-center text-xl font-bold">
-                                                98
-                                            </div>
-                                            <div>
-                                                <div className="font-black text-dark text-lg">Reliability Score</div>
-                                                <div className="text-gray-500 text-sm">The new standard for trust.</div>
-                                            </div>
-                                        </div>
-                                        <div className="space-y-4">
-                                            <div>
-                                                <div className="flex justify-between text-sm font-bold mb-1">
-                                                    <span className="text-gray-600">On-Time Arrival</span>
-                                                    <span className="text-green-600">99%</span>
-                                                </div>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-green-500 w-[99%]"></div>
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="flex justify-between text-sm font-bold mb-1">
-                                                    <span className="text-gray-600">Job Completion</span>
-                                                    <span className="text-blue-600">100%</span>
-                                                </div>
-                                                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
-                                                    <div className="h-full bg-blue-500 w-full"></div>
-                                                </div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </section>
-
-                    {/* Footer */}
-                    <footer className="bg-dark text-white py-12 border-t border-gray-800">
-                        <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row justify-between items-center gap-8">
-                            <div className="flex items-center gap-2 text-xl font-black tracking-tight">
-                                <i className="fas fa-hand-holding-heart text-gray-400"></i>
-                                <span>Reliable Hands</span>
-                            </div>
-                            <div className="text-gray-400 text-sm">
-                                &copy; 2026 Reliable Hands Inc.
-                            </div>
-                            <div className="flex gap-6">
-                                <a href="#" className="text-gray-400 hover:text-white transition"><i className="fab fa-twitter"></i></a>
-                                <a href="#" className="text-gray-400 hover:text-white transition"><i className="fab fa-instagram"></i></a>
-                                <a href="#" className="text-gray-400 hover:text-white transition"><i className="fab fa-facebook"></i></a>
-                            </div>
-                        </div>
-                    </footer>
-
-                    {/* Waitlist Modal Logic */}
-                    <WaitlistModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} />
-                </div>
-            );
-        };
-
-        const root = ReactDOM.createRoot(document.getElementById('root'));
-        root.render(<App />);
-    </script>
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
 </body>
 </html>
