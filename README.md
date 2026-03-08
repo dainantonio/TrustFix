@@ -2,8 +2,11 @@
 
 TrustFix is a local-first home services marketplace designed to beat legacy directories with AI-powered reliability.
 
-## Phase 4+ status
-Phase 4 autonomy is still active, and this iteration adds a backend-ready service contract split so we can move from browser-only orchestration to worker/API architecture.
+## Current Product Surface (visible in frontend)
+The UI now explicitly presents all prior phases in one screen:
+- **Phase 2 (Data layer):** trust scoring + preference memory + job state
+- **Phase 3 (Intelligence layer):** intake parsing (LLM + fallback) + smart routing results
+- **Phase 4 (Autonomy layer):** proactive notification center with actionable agent prompts
 
 ## Architecture (modular)
 - `index.html` — entrypoint + module wiring
@@ -13,31 +16,16 @@ Phase 4 autonomy is still active, and this iteration adds a backend-ready servic
 - `src/autonomy.js` — routing + backup candidate selection
 - `src/api.js` — API contract shim for persistence (`notifications`, `memory`, `suspensions`)
 - `src/worker.js` — autonomy worker evaluator (`evaluateAutonomy`) with policy checks
-- `src/App.jsx` — UI + orchestration that now calls API/worker modules
-
-## What changed in this iteration
-1. **API contract layer added**
-   - Notification list/update
-   - Preference memory get/update
-   - Suspension map get/update
-2. **Autonomy worker extracted**
-   - ETA watchdog thresholds
-   - Price variance checks
-   - Long duration checks
-   - Address pattern memory alerts
-   - Repeat dispute suspension
-3. **UI wired to contract**
-   - Notification actions now write through contract methods
-   - Memory/suspension state now persists via contract methods
+- `src/App.jsx` — visible product UI + orchestration using all phase modules
 
 ## Why this is important
-This creates a clean handoff point to a real backend:
+This keeps a clear frontend while preserving backend-ready seams:
 - swap `src/api.js` localStorage methods with HTTP calls,
 - move `src/worker.js` execution to a backend job worker,
-- keep the UI contract mostly unchanged.
+- keep UI behavior and data contract stable.
 
 ## Next implementation targets
 - Replace `src/api.js` with real HTTP client + backend endpoints
-- Run `evaluateAutonomy` server-side on a scheduler/queue
+- Run `evaluateAutonomy` server-side on scheduler/queue
 - Add automated tests for worker policy outcomes and contract behaviors
 - Add outbound notifier adapters (SMS/email)
