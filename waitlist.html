@@ -3,24 +3,105 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrustFix | Waitlist</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="stylesheet" href="src/styles.css?v=20260308b" />
+  <title>TrustFix | Premium Waitlist</title>
+  <link rel="stylesheet" href="src/styles.css?v=20260309a" />
+  <style>
+    .shell{max-width:1100px;margin:26px auto;padding:0 20px}
+    .split{display:grid;grid-template-columns:1fr 1.1fr;gap:18px}
+    .panel{padding:26px}
+    .role-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .role-card{border:1px solid #cbd5e1;background:#fff;border-radius:12px;padding:12px;cursor:pointer}
+    .role-card.active{border-color:#4f46e5;background:#eef2ff}
+    .hidden{display:none}
+    @media(max-width:900px){.split{grid-template-columns:1fr}}
+  </style>
 </head>
-<body class="bg-slate-50 text-slate-900">
-  <div class="mx-auto max-w-xl px-6 py-10">
-    <a href="index.html" class="text-sm font-semibold text-indigo-700 hover:underline">← Back to landing page</a>
-    <h1 class="mt-3 text-3xl font-extrabold">Join the TrustFix Waitlist</h1>
-    <p class="mt-2 text-slate-600">Get updates for launch access in your city.</p>
-    <form class="mt-6 space-y-3 rounded-xl border bg-white p-5" onsubmit="event.preventDefault(); this.querySelector('#msg').classList.remove('hidden');">
-      <input required type="email" placeholder="you@example.com" class="w-full rounded-lg border px-3 py-2" />
-      <select class="w-full rounded-lg border px-3 py-2">
-        <option>Homeowner</option>
-        <option>Local Pro</option>
-      </select>
-      <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 font-bold text-white">Join Waitlist</button>
-      <p id="msg" class="hidden text-sm font-semibold text-emerald-600">Thanks — you’re on the list.</p>
-    </form>
+<body>
+  <nav class="tf-nav">
+    <strong>TrustFix</strong>
+    <div class="tf-nav-links">
+      <a href="index.html">Landing</a><a href="demo.html">Demo</a><a href="contractor.html?id=1">Contractor Profile</a><a href="waitlist.html">Waitlist</a><a href="roadmap.html">Roadmap</a>
+    </div>
+  </nav>
+
+  <div class="shell split">
+    <section class="card panel hero-gradient" style="color:white">
+      <span class="badge" style="background:rgba(255,255,255,.12);color:#c7d2fe">Founding Access</span>
+      <h1 style="margin:14px 0 8px;font-size:34px">Join the TrustFix premium waitlist</h1>
+      <p style="color:#cbd5e1">Get priority onboarding, founding-member pricing, and direct product feedback sessions.</p>
+      <ul style="margin:18px 0 0;padding-left:18px;color:#e2e8f0;line-height:1.8">
+        <li>Priority access before public launch</li>
+        <li>Locked-in founding pricing</li>
+        <li>Influence roadmap features</li>
+      </ul>
+      <div class="card" style="margin-top:22px;padding:14px;background:rgba(255,255,255,.95)">
+        <p style="margin:0 0 4px;color:#334155;font-size:12px;font-weight:700">Early Members</p>
+        <p id="count" style="margin:0;font-size:34px;font-weight:800;color:#4f46e5">0</p>
+      </div>
+    </section>
+
+    <section class="card panel">
+      <h2 style="margin-top:0">Reserve your spot</h2>
+      <div class="role-grid">
+        <button class="role-card active" data-role="homeowner"><strong>Homeowner</strong><div style="font-size:12px;color:#64748b">Book trusted pros</div></button>
+        <button class="role-card" data-role="contractor"><strong>Local Pro</strong><div style="font-size:12px;color:#64748b">Grow with trust scores</div></button>
+      </div>
+
+      <form id="waitlistForm" style="margin-top:14px;display:grid;gap:10px">
+        <input class="tf-input" name="name" required placeholder="Full name" />
+        <input class="tf-input" type="email" name="email" required placeholder="Email" />
+        <div class="hidden" id="tradeWrap"><input class="tf-input" name="trade" placeholder="Primary trade (HVAC, Plumbing...)" /></div>
+        <div style="display:grid;grid-template-columns:1fr 140px;gap:10px">
+          <input class="tf-input" name="city" required placeholder="City" />
+          <input class="tf-input" name="state" required placeholder="State" maxlength="2" />
+        </div>
+        <textarea class="tf-textarea" name="notes" rows="3" placeholder="What matters most to you?"></textarea>
+        <div class="progress-track"><span id="progressBar"></span></div>
+        <button class="btn-primary" type="submit">Join Waitlist</button>
+      </form>
+      <div id="confirm" class="notif-card hidden fade-in" style="margin-top:14px"></div>
+    </section>
   </div>
+
+  <footer class="tf-footer">Next: <a href="roadmap.html">Roadmap</a> · Back: <a href="index.html">Landing</a></footer>
+
+  <script>
+    const KEY = 'trustfix.waitlist.v1';
+    let selectedRole = 'homeowner';
+    const roles = document.querySelectorAll('.role-card');
+    const tradeWrap = document.getElementById('tradeWrap');
+    const countEl = document.getElementById('count');
+
+    const target = 247;
+    let cur = 0;
+    const tick = setInterval(()=>{cur += Math.ceil((target-cur)*0.08);countEl.textContent = Math.min(cur,target);if(cur>=target)clearInterval(tick);},40);
+
+    roles.forEach(btn => btn.addEventListener('click', () => {
+      roles.forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedRole = btn.dataset.role;
+      tradeWrap.classList.toggle('hidden', selectedRole !== 'contractor');
+    }));
+
+    document.getElementById('waitlistForm').addEventListener('submit', (e) => {
+      e.preventDefault();
+      const data = Object.fromEntries(new FormData(e.target).entries());
+      data.role = selectedRole;
+      data.createdAt = Date.now();
+      const items = JSON.parse(localStorage.getItem(KEY) || '[]');
+      items.unshift(data);
+      localStorage.setItem(KEY, JSON.stringify(items));
+
+      const bar = document.getElementById('progressBar');
+      bar.style.setProperty('--progress', '100%');
+      setTimeout(() => {
+        document.getElementById('confirm').classList.remove('hidden');
+        document.getElementById('confirm').innerHTML = `<strong>You're in, ${data.name.split(' ')[0]}.</strong><br/>We'll send ${data.role === 'contractor' ? 'pro onboarding steps' : 'early access updates'} for ${data.city}, ${data.state.toUpperCase()}.`;
+      }, 450);
+      e.target.reset();
+      bar.style.setProperty('--progress', '0%');
+      if (selectedRole === 'contractor') tradeWrap.classList.remove('hidden');
+    });
+  </script>
 </body>
 </html>
