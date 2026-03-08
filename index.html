@@ -22,87 +22,233 @@
     .pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
     @keyframes slide-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
     .slide-in { animation: slide-in 0.25s ease-out forwards; }
+    @keyframes score-up { 0%{background:#d1fae5;} 100%{background:transparent;} }
+    @keyframes score-down { 0%{background:#fee2e2;} 100%{background:transparent;} }
+    .score-up   { animation: score-up   1.8s ease-out; }
+    .score-down { animation: score-down 1.8s ease-out; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
   <div id="root"></div>
 
   <script type="text/babel">
-    // ─── Pros Data ──────────────────────────────────────────────────────────────
-    const PROS = [
-      { id: 1, name: 'Maya Plumbing Co.',    trade: 'Plumber',     score: 98, eta: 32, jobs: 214, local: 'Northside',  emergency: true,  scoreBreakdown: { onTime: 96, disputes: 0, completions: 214 } },
-      { id: 2, name: 'Riverside Electric',   trade: 'Electrician', score: 96, eta: 41, jobs: 167, local: 'Downtown',   emergency: true,  scoreBreakdown: { onTime: 94, disputes: 1, completions: 167 } },
-      { id: 3, name: 'Evergreen Home Repair',trade: 'Handyman',    score: 95, eta: 27, jobs: 289, local: 'East End',   emergency: false, scoreBreakdown: { onTime: 93, disputes: 2, completions: 289 } },
-      { id: 4, name: 'Springfield Rooter',   trade: 'Plumber',     score: 94, eta: 24, jobs: 141, local: 'Westfield',  emergency: true,  scoreBreakdown: { onTime: 92, disputes: 0, completions: 141 } },
-      { id: 5, name: 'Solid Spark Systems',  trade: 'Electrician', score: 93, eta: 35, jobs: 122, local: 'South Park', emergency: false, scoreBreakdown: { onTime: 91, disputes: 1, completions: 122 } },
-      { id: 6, name: 'QuickFix Handyman',    trade: 'Handyman',    score: 89, eta: 18, jobs:  76, local: 'Northside',  emergency: true,  scoreBreakdown: { onTime: 88, disputes: 3, completions:  76 } },
+
+    // ─── Base Contractor Data ────────────────────────────────────────────────────
+    const PROS_BASE = [
+      { id: 1, name: 'Maya Plumbing Co.',     trade: 'Plumber',     baseScore: 98, eta: 32, jobs: 214, local: 'Northside',  emergency: true  },
+      { id: 2, name: 'Riverside Electric',    trade: 'Electrician', baseScore: 96, eta: 41, jobs: 167, local: 'Downtown',   emergency: true  },
+      { id: 3, name: 'Evergreen Home Repair', trade: 'Handyman',    baseScore: 95, eta: 27, jobs: 289, local: 'East End',   emergency: false },
+      { id: 4, name: 'Springfield Rooter',    trade: 'Plumber',     baseScore: 94, eta: 24, jobs: 141, local: 'Westfield',  emergency: true  },
+      { id: 5, name: 'Solid Spark Systems',   trade: 'Electrician', baseScore: 93, eta: 35, jobs: 122, local: 'South Park', emergency: false },
+      { id: 6, name: 'QuickFix Handyman',     trade: 'Handyman',    baseScore: 89, eta: 18, jobs:  76, local: 'Northside',  emergency: true  },
     ];
 
     const STAGES = ['Intake', 'Matching', 'Booked', 'In Progress', 'Completed'];
 
-    // ─── Agent Logic ────────────────────────────────────────────────────────────
+    // ─── Reliability Event Store ─────────────────────────────────────────────────
+    // Each event: { id, contractorId, jobId, type, timestamp }
+    // type: 'completed_on_time' | 'completed_late' | 'dispute' | 'cancelled'
+    function loadEvents()  { try { return JSON.parse(localStorage.getItem('tf_events') || '[]'); } catch { return []; } }
+    function saveEvents(e) { try { localStorage.setItem('tf_events', JSON.stringify(e)); } catch {} }
+
+    // ─── Score History Store ─────────────────────────────────────────────────────
+    // { [contractorId]: [{ score, timestamp, jobId }, ...] }
+    function loadScoreHistory()    { try { return JSON.parse(localStorage.getItem('tf_score_history') || '{}'); } catch { return {}; } }
+    function saveScoreHistory(h)   { try { localStorage.setItem('tf_score_history', JSON.stringify(h)); } catch {} }
+
+    // ─── Live Score Computation ──────────────────────────────────────────────────
+    function computeScore(contractorId, baseScore, events) {
+      const relevant = events.filter(e => e.contractorId === contractorId);
+      if (relevant.length === 0) return baseScore;
+      const now = Date.now();
+      let delta = 0;
+      relevant.forEach(e => {
+        const ageDays = (now - new Date(e.timestamp).getTime()) / (1000 * 60 * 60 * 24);
+        const w = Math.max(0.2, 1 - ageDays / 90); // recency decay over 90 days
+        switch (e.type) {
+          case 'completed_on_time': delta += 0.6 * w; break;
+          case 'completed_late':    delta -= 0.4 * w; break;
+          case 'dispute':           delta -= 2.5 * w; break;
+          case 'cancelled':         delta -= 1.2 * w; break;
+        }
+      });
+      return Math.round(Math.min(100, Math.max(50, baseScore + delta)) * 10) / 10;
+    }
+
+    function computeAllScores(events) {
+      return PROS_BASE.reduce((acc, p) => {
+        acc[p.id] = computeScore(p.id, p.baseScore, events);
+        return acc;
+      }, {});
+    }
+
+    function buildScoreBreakdown(contractorId, events) {
+      const base = PROS_BASE.find(p => p.id === contractorId);
+      const relevant = events.filter(e => e.contractorId === contractorId);
+      const completions = (base?.jobs ?? 0) + relevant.filter(e => e.type === 'completed_on_time' || e.type === 'completed_late').length;
+      const disputes   = relevant.filter(e => e.type === 'dispute').length;
+      const onTimePct  = relevant.length === 0
+        ? (base?.baseScore ?? 90) - 2
+        : Math.round((relevant.filter(e => e.type === 'completed_on_time').length / relevant.length) * 100);
+      return { onTime: onTimePct, disputes, completions };
+    }
+
+    function buildPros(scores, events) {
+      return PROS_BASE.map(p => ({
+        ...p,
+        score: scores[p.id] ?? p.baseScore,
+        scoreBreakdown: buildScoreBreakdown(p.id, events),
+      }));
+    }
+
+    // ─── Outcome simulator (weighted by live score) ──────────────────────────────
+    function simulateOutcome(score) {
+      const r = Math.random() * 100;
+      if (score >= 95) {
+        return r < 80 ? 'completed_on_time' : r < 92 ? 'completed_late' : r < 97 ? 'dispute' : 'cancelled';
+      } else if (score >= 88) {
+        return r < 70 ? 'completed_on_time' : r < 87 ? 'completed_late' : r < 95 ? 'dispute' : 'cancelled';
+      } else {
+        return r < 60 ? 'completed_on_time' : r < 80 ? 'completed_late' : r < 93 ? 'dispute' : 'cancelled';
+      }
+    }
+
+    // ─── Persistence ─────────────────────────────────────────────────────────────
+    function loadJobs()     { try { return JSON.parse(localStorage.getItem('tf_jobs') || '[]'); } catch { return []; } }
+    function saveJobs(jobs) { try { localStorage.setItem('tf_jobs', JSON.stringify(jobs)); } catch {} }
+
+    let jobCounter = Math.max(0, ...loadJobs().map(j => j.id || 0), 0);
+
+    // ─── Agent Logic ─────────────────────────────────────────────────────────────
     function parseIssue(text) {
       const v = text.toLowerCase();
-      if (/pipe|leak|drain|flood|water|toilet|faucet/.test(v))
+      if (/pipe|leak|drain|flood|water|toilet|faucet|shutoff|valve/.test(v))
         return { trade: 'Plumber',     urgency: 'High',   summary: 'Plumbing issue detected. Routing licensed plumbers prioritizing emergency response and completion rate.' };
       if (/power|outlet|breaker|light|electric|circuit|wire/.test(v))
         return { trade: 'Electrician', urgency: 'High',   summary: 'Electrical issue detected. Prioritizing electricians with same-day diagnostics and high on-time arrival.' };
       return   { trade: 'Handyman',    urgency: 'Medium', summary: 'General repair task. Matching by reliability score, proximity, and recent homeowner ratings.' };
     }
 
-    function rankMatches(trade, urgency) {
-      return PROS
+    function rankMatches(trade, urgency, livePros) {
+      return livePros
         .filter(p => p.trade === trade)
         .map(p => {
-          let score = p.score;
-          if (urgency === 'High' && p.emergency) score += 3;
-          score -= p.eta * 0.05;
-          return { ...p, rankScore: Math.round(score * 10) / 10 };
+          let s = p.score;
+          if (urgency === 'High' && p.emergency) s += 3;
+          s -= p.eta * 0.05;
+          return { ...p, rankScore: Math.round(s * 10) / 10 };
         })
         .sort((a, b) => b.rankScore - a.rankScore)
         .slice(0, 3);
     }
 
-    // Agent reasoning messages per stage transition
-    function agentReasoning(stage, analysis, topPro) {
-      const ts = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+    function ts() { return new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }); }
+
+    function agentReasoning(stage, analysis, topPro, scoreEvent) {
       const map = {
-        'Intake':      () => ({ time: ts(), msg: `Intake parsed — detected trade: ${analysis.trade}, urgency: ${analysis.urgency}. ${analysis.summary}` }),
-        'Matching':    () => ({ time: ts(), msg: `Matching complete — top candidate: ${topPro.name} (score ${topPro.score}, ETA ${topPro.eta}m). ${topPro.scoreBreakdown.onTime}% on-time across ${topPro.scoreBreakdown.completions} jobs, ${topPro.scoreBreakdown.disputes} disputes.` }),
+        'Intake':      () => ({ time: ts(), msg: `Intake parsed — trade: ${analysis.trade}, urgency: ${analysis.urgency}. ${analysis.summary}` }),
+        'Matching':    () => ({ time: ts(), msg: `Matching complete — top candidate: ${topPro.name} (live score ${topPro.score}, ETA ${topPro.eta}m). ${topPro.scoreBreakdown.onTime}% on-time across ${topPro.scoreBreakdown.completions} jobs, ${topPro.scoreBreakdown.disputes} disputes.` }),
         'Booked':      () => ({ time: ts(), msg: `Job booked with ${topPro.name}. Confirmation sent. Agent monitoring ETA window.` }),
-        'In Progress': () => ({ time: ts(), msg: `${topPro.name} marked as on-site. Job timer started. Agent will flag delays if check-in exceeds scheduled window.` }),
-        'Completed':   () => ({ time: ts(), msg: `Job closed. Reliability event recorded for ${topPro.name}. Trust score updated. Homeowner review prompt queued.` }),
+        'In Progress': () => ({ time: ts(), msg: `${topPro.name} marked on-site. Job timer started. Agent will flag delays beyond scheduled window.` }),
+        'Completed':   () => {
+          if (scoreEvent) {
+            const { oldScore, newScore, type } = scoreEvent;
+            const delta = Math.round((newScore - oldScore) * 10) / 10;
+            const dir   = delta >= 0 ? `▲ +${delta}` : `▼ ${delta}`;
+            const label = { completed_on_time: 'on-time completion', completed_late: 'late arrival', dispute: 'homeowner dispute filed', cancelled: 'job cancellation' }[type];
+            return { time: ts(), msg: `Job closed — ${label} recorded for ${topPro.name}. Trust score: ${oldScore} → ${newScore} (${dir}). Reliability event stored.` };
+          }
+          return { time: ts(), msg: `Job closed. Reliability event recorded for ${topPro.name}. Trust score updated.` };
+        },
       };
       return map[stage] ? map[stage]() : null;
     }
 
-    // ─── Persistence ────────────────────────────────────────────────────────────
-    function loadJobs() {
-      try { return JSON.parse(localStorage.getItem('tf_jobs') || '[]'); } catch { return []; }
-    }
-    function saveJobs(jobs) {
-      try { localStorage.setItem('tf_jobs', JSON.stringify(jobs)); } catch {}
+    // ─── Sparkline ───────────────────────────────────────────────────────────────
+    function Sparkline({ contractorId, width = 80, height = 24 }) {
+      const history = loadScoreHistory()[contractorId] || [];
+      if (history.length < 2) return <span className="text-xs text-slate-300 italic">no history yet</span>;
+      const scores = history.slice(-14).map(h => h.score);
+      const min  = Math.min(...scores) - 0.5;
+      const max  = Math.max(...scores) + 0.5;
+      const rng  = max - min || 1;
+      const pts  = scores.map((s, i) => {
+        const x = (i / (scores.length - 1)) * width;
+        const y = height - ((s - min) / rng) * (height - 4) - 2;
+        return `${x.toFixed(1)},${y.toFixed(1)}`;
+      }).join(' ');
+      const last  = scores[scores.length - 1];
+      const first = scores[0];
+      const color = last >= first ? '#10b981' : '#ef4444';
+      const lpt   = pts.split(' ').pop().split(',');
+      return (
+        <svg width={width} height={height} className="overflow-visible">
+          <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" opacity="0.85" />
+          <circle cx={parseFloat(lpt[0])} cy={parseFloat(lpt[1])} r="2.5" fill={color} />
+        </svg>
+      );
     }
 
-    let jobCounter = loadJobs().length;
+    // ─── Contractor Trust Card ───────────────────────────────────────────────────
+    function ContractorCard({ pro, flash }) {
+      const events   = loadEvents().filter(e => e.contractorId === pro.id);
+      const recent   = events.slice(-4).reverse();
+      const evColor  = { completed_on_time: 'text-emerald-600', completed_late: 'text-amber-600', dispute: 'text-red-500', cancelled: 'text-slate-400' };
+      const evLabel  = { completed_on_time: '✓ On-time', completed_late: '⏱ Late', dispute: '⚠ Dispute', cancelled: '✕ Cancelled' };
+      const sColor   = pro.score >= 95 ? 'text-emerald-600' : pro.score >= 88 ? 'text-indigo-600' : 'text-amber-600';
+      const flashCls = flash === 'up' ? 'score-up' : flash === 'down' ? 'score-down' : '';
 
-    // ─── Job Card Component ──────────────────────────────────────────────────────
+      return (
+        <div className={`rounded-xl bg-white ring-1 ring-slate-200 p-4 space-y-3 slide-in ${flashCls}`}>
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-bold text-sm truncate">{pro.name}</p>
+              <p className="text-xs text-slate-500 mt-0.5">{pro.trade} · {pro.local}</p>
+            </div>
+            <div className="text-right flex-shrink-0">
+              <p className={`text-2xl font-extrabold leading-none ${sColor}`}>{pro.score}</p>
+              <p className="text-xs text-slate-400 mt-0.5">live score</p>
+            </div>
+          </div>
+
+          <div className="flex items-center justify-between gap-3">
+            <Sparkline contractorId={pro.id} />
+            <div className="text-right text-xs text-slate-500 space-y-0.5 flex-shrink-0">
+              <p>{pro.scoreBreakdown.onTime}% on-time</p>
+              <p>{pro.scoreBreakdown.completions} jobs</p>
+              <p>{pro.scoreBreakdown.disputes} disputes</p>
+            </div>
+          </div>
+
+          {recent.length > 0 && (
+            <div className="space-y-1 border-t border-slate-100 pt-2">
+              <p className="text-xs font-bold uppercase tracking-wider text-slate-400">Recent</p>
+              {recent.map((e, i) => (
+                <div key={i} className={`text-xs ${evColor[e.type]}`}>
+                  {evLabel[e.type]} · Job #{e.jobId}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+    }
+
+    // ─── Job Card ────────────────────────────────────────────────────────────────
     function JobCard({ job, onAdvance }) {
       const [expanded, setExpanded] = React.useState(true);
-      const stageIdx = STAGES.indexOf(job.stage);
-      const statusColor = {
+      const stageIdx  = STAGES.indexOf(job.stage);
+      const statusCls = {
         'Intake':      'bg-amber-100 text-amber-800',
         'Matching':    'bg-blue-100 text-blue-800',
         'Booked':      'bg-violet-100 text-violet-800',
         'In Progress': 'bg-indigo-100 text-indigo-800',
         'Completed':   'bg-emerald-100 text-emerald-800',
       }[job.stage] || 'bg-slate-100 text-slate-600';
-
       const isActive = job.stage !== 'Completed';
 
       return (
         <article className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden slide-in">
-          {/* Header */}
           <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 cursor-pointer" onClick={() => setExpanded(e => !e)}>
             <div className="flex items-center gap-3 min-w-0">
               <div className={`flex-shrink-0 w-2 h-2 rounded-full ${isActive ? 'bg-indigo-500 pulse-dot' : 'bg-emerald-400'}`} />
@@ -112,7 +258,7 @@
               </div>
             </div>
             <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${statusColor}`}>{job.stage}</span>
+              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${statusCls}`}>{job.stage}</span>
               <span className="text-slate-400 text-xs">{expanded ? '▲' : '▼'}</span>
             </div>
           </div>
@@ -123,9 +269,9 @@
               <div className="flex gap-1">
                 {STAGES.map((s, i) => (
                   <div key={s} className={`flex-1 rounded text-center py-1 text-xs font-semibold transition-colors
-                    ${i < stageIdx ? 'bg-indigo-100 text-indigo-600' :
+                    ${i < stageIdx  ? 'bg-indigo-100 text-indigo-600' :
                       i === stageIdx ? 'bg-indigo-600 text-white' :
-                      'bg-slate-100 text-slate-400'}`}>
+                                       'bg-slate-100 text-slate-400'}`}>
                     {s}
                   </div>
                 ))}
@@ -141,23 +287,24 @@
                       {job.topPro.scoreBreakdown.onTime}% on-time · {job.topPro.scoreBreakdown.completions} jobs · {job.topPro.scoreBreakdown.disputes} disputes
                     </p>
                   </div>
-                  <span className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-extrabold text-emerald-700 flex-shrink-0">
-                    {job.topPro.score}
-                  </span>
+                  <div className="text-right flex-shrink-0">
+                    <span className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-extrabold text-emerald-700 block">{job.topPro.score}</span>
+                    <span className="text-xs text-slate-400 mt-1 block">live</span>
+                  </div>
                 </div>
               )}
 
               {/* Agent log */}
               <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Agent Activity Log</p>
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+                <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
                   {job.log.map((entry, i) => (
                     <div key={i} className="flex gap-2 text-xs">
                       <span className="flex-shrink-0 text-slate-400 font-mono">{entry.time}</span>
                       <span className="text-slate-700">{entry.msg}</span>
                     </div>
                   ))}
-                  {job.stage !== 'Completed' && (
+                  {isActive && (
                     <div className="flex gap-2 text-xs items-center">
                       <span className="flex-shrink-0 text-slate-400 font-mono">——</span>
                       <span className="text-slate-400 italic pulse-dot">Agent waiting…</span>
@@ -166,7 +313,6 @@
                 </div>
               </div>
 
-              {/* Advance */}
               {isActive && (
                 <button
                   onClick={() => onAdvance(job.id)}
@@ -184,20 +330,13 @@
     // ─── New Job Form ────────────────────────────────────────────────────────────
     function NewJobForm({ onSubmit }) {
       const [issue, setIssue] = React.useState('');
-      const [zip, setZip] = React.useState('01103');
+      const [zip,   setZip]   = React.useState('01103');
       const examples = [
         'Burst pipe in basement, water rising quickly.',
         'Kitchen outlet not working, circuit breaker keeps tripping.',
         'Deck boards are rotting, need full replacement.',
       ];
-
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!issue.trim()) return;
-        onSubmit(issue.trim(), zip.trim());
-        setIssue('');
-      };
-
+      const handleSubmit = (e) => { e.preventDefault(); if (!issue.trim()) return; onSubmit(issue.trim(), zip.trim()); setIssue(''); };
       return (
         <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 space-y-4">
           <div className="flex items-center justify-between">
@@ -205,19 +344,13 @@
               <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">New Job Intake</p>
               <h2 className="mt-1 text-xl font-extrabold">Submit a repair request</h2>
             </div>
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">AI-powered routing</span>
+            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Live trust scoring</span>
           </div>
-
           <div className="grid gap-4 md:grid-cols-3">
             <div className="md:col-span-2">
               <label className="text-sm font-semibold text-slate-700 block mb-1.5">Describe your issue</label>
-              <textarea
-                value={issue}
-                onChange={e => setIssue(e.target.value)}
-                rows={3}
-                placeholder="Describe what's happening…"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              />
+              <textarea value={issue} onChange={e => setIssue(e.target.value)} rows={3} placeholder="Describe what's happening…"
+                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
               <div className="flex flex-wrap gap-2 mt-2">
                 {examples.map(ex => (
                   <button key={ex} type="button" onClick={() => setIssue(ex)}
@@ -233,9 +366,8 @@
                 <input value={zip} onChange={e => setZip(e.target.value)}
                   className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
               </div>
-              <button type="submit"
-                className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-500 transition-colors disabled:opacity-40"
-                disabled={!issue.trim()}>
+              <button type="submit" disabled={!issue.trim()}
+                className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-500 transition-colors disabled:opacity-40">
                 Dispatch Agent →
               </button>
             </div>
@@ -244,70 +376,113 @@
       );
     }
 
-    // ─── Job Board ───────────────────────────────────────────────────────────────
+    // ─── Job Board (root) ─────────────────────────────────────────────────────────
     function JobBoard() {
-      const [jobs, setJobs] = React.useState(() => loadJobs());
-      const [filter, setFilter] = React.useState('All');
+      const [jobs,          setJobs]          = React.useState(() => loadJobs());
+      const [filter,        setFilter]        = React.useState('All');
+      const [events,        setEvents]        = React.useState(() => loadEvents());
+      const [scores,        setScores]        = React.useState(() => computeAllScores(loadEvents()));
+      const [scoreHistory,  setScoreHistory]  = React.useState(() => loadScoreHistory());
+      const [flashMap,      setFlashMap]      = React.useState({});   // { contractorId: 'up'|'down' }
+
+      const livePros = React.useMemo(() => buildPros(scores, events), [scores, events]);
+
+      const refreshScores = (newEvents) => {
+        const ns = computeAllScores(newEvents);
+        setScores(ns);
+        setEvents(newEvents);
+      };
 
       const updateJobs = (next) => { setJobs(next); saveJobs(next); };
 
       const submitJob = (issue, zip) => {
         jobCounter++;
         const analysis = parseIssue(issue);
-        const matches = rankMatches(analysis.trade, analysis.urgency);
-        const topPro = matches[0] || null;
-        const firstEntry = agentReasoning('Intake', analysis, topPro);
-        const newJob = {
-          id: jobCounter,
-          issue,
-          zip,
-          analysis,
-          topPro,
-          matches,
-          stage: 'Intake',
-          log: firstEntry ? [firstEntry] : [],
-          createdAt: new Date().toISOString(),
-        };
-        updateJobs([newJob, ...jobs]);
+        const matches  = rankMatches(analysis.trade, analysis.urgency, livePros);
+        const topPro   = matches[0] || null;
+        const entry    = agentReasoning('Intake', analysis, topPro, null);
+        updateJobs([{ id: jobCounter, issue, zip, analysis, topPro, matches, stage: 'Intake', log: entry ? [entry] : [], createdAt: new Date().toISOString() }, ...jobs]);
       };
 
       const advanceJob = (jobId) => {
+        let newEventsRef = null;
+        let flashContractorId = null;
+        let flashDir = null;
+
         const next = jobs.map(j => {
           if (j.id !== jobId) return j;
-          const idx = STAGES.indexOf(j.stage);
+          const idx       = STAGES.indexOf(j.stage);
           if (idx >= STAGES.length - 1) return j;
           const nextStage = STAGES[idx + 1];
-          const entry = agentReasoning(nextStage, j.analysis, j.topPro);
+          let scoreEvent  = null;
+
+          if (nextStage === 'Completed' && j.topPro) {
+            const currentEvents = loadEvents();
+            const outcome       = simulateOutcome(j.topPro.score);
+            const newEvent      = { id: Date.now(), contractorId: j.topPro.id, jobId: j.id, type: outcome, timestamp: new Date().toISOString() };
+            const updatedEvents = [...currentEvents, newEvent];
+            saveEvents(updatedEvents);
+            newEventsRef = updatedEvents;
+
+            const oldScore = j.topPro.score;
+            const newScore = computeScore(j.topPro.id, PROS_BASE.find(p => p.id === j.topPro.id)?.baseScore ?? 90, updatedEvents);
+
+            // Score history snapshot
+            const h = loadScoreHistory();
+            if (!h[j.topPro.id]) h[j.topPro.id] = [];
+            if (h[j.topPro.id].length === 0) {
+              h[j.topPro.id].push({ score: oldScore, timestamp: new Date(Date.now() - 1000).toISOString(), jobId: null });
+            }
+            h[j.topPro.id].push({ score: newScore, timestamp: new Date().toISOString(), jobId: j.id });
+            saveScoreHistory(h);
+            setScoreHistory({ ...h });
+
+            scoreEvent        = { oldScore, newScore, type: outcome };
+            flashContractorId = j.topPro.id;
+            flashDir          = newScore >= oldScore ? 'up' : 'down';
+          }
+
+          const entry = agentReasoning(nextStage, j.analysis, j.topPro, scoreEvent);
           return { ...j, stage: nextStage, log: [...j.log, ...(entry ? [entry] : [])] };
         });
+
         updateJobs(next);
+        if (newEventsRef) {
+          refreshScores(newEventsRef);
+          if (flashContractorId) {
+            setFlashMap(m => ({ ...m, [flashContractorId]: flashDir }));
+            setTimeout(() => setFlashMap(m => ({ ...m, [flashContractorId]: null })), 2000);
+          }
+        }
       };
 
       const clearCompleted = () => updateJobs(jobs.filter(j => j.stage !== 'Completed'));
 
       const filters = ['All', 'Intake', 'Matching', 'Booked', 'In Progress', 'Completed'];
       const visible = filter === 'All' ? jobs : jobs.filter(j => j.stage === filter);
-      const counts = STAGES.reduce((acc, s) => ({ ...acc, [s]: jobs.filter(j => j.stage === s).length }), {});
+      const counts  = STAGES.reduce((acc, s) => ({ ...acc, [s]: jobs.filter(j => j.stage === s).length }), {});
 
       return (
         <div>
-          {/* Header */}
+          {/* Hero */}
           <header className="hero-gradient text-white">
             <div className="mx-auto max-w-6xl px-6 py-14 md:py-20">
               <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">
-                Agentic Job Flow — Phase 1
+                Agentic Job Flow — Phase 2
               </p>
               <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">
-                TrustFix: local pros marketplace<br />with autonomous job dispatch.
+                TrustFix: live trust scores<br />that learn from every job.
               </h1>
               <p className="mt-4 max-w-2xl text-lg text-slate-300">
-                Submit a repair request. The agent classifies your issue, ranks candidates by explainable trust scores, and tracks the job lifecycle autonomously.
+                Every completed job updates contractor trust scores in real time. The agent records reliability events, recalculates scores with recency weighting, and routes future jobs on live data — not static ratings.
               </p>
-              {/* Stats */}
               <div className="mt-8 flex flex-wrap gap-6">
-                {[['Active jobs', jobs.filter(j => j.stage !== 'Completed').length],
-                  ['Completed', counts['Completed'] || 0],
-                  ['Pros available', PROS.length]].map(([label, val]) => (
+                {[
+                  ['Active jobs',        jobs.filter(j => j.stage !== 'Completed').length],
+                  ['Completed',          counts['Completed'] || 0],
+                  ['Reliability events', events.length],
+                  ['Pros tracked',       livePros.length],
+                ].map(([label, val]) => (
                   <div key={label}>
                     <p className="text-2xl font-extrabold">{val}</p>
                     <p className="text-xs text-slate-400 mt-0.5">{label}</p>
@@ -317,7 +492,7 @@
             </div>
           </header>
 
-          <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
+          <main className="mx-auto max-w-6xl px-6 py-10 space-y-10">
             <NewJobForm onSubmit={submitJob} />
 
             {/* Job Board */}
@@ -335,7 +510,6 @@
                   <button onClick={clearCompleted} className="text-xs text-slate-400 hover:text-red-500 transition-colors">Clear completed</button>
                 )}
               </div>
-
               {visible.length === 0 ? (
                 <div className="rounded-2xl border-2 border-dashed border-slate-200 py-16 text-center">
                   <p className="text-slate-400 font-semibold">No jobs yet.</p>
@@ -343,11 +517,45 @@
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2">
-                  {visible.map(job => (
-                    <JobCard key={job.id} job={job} onAdvance={advanceJob} />
-                  ))}
+                  {visible.map(job => <JobCard key={job.id} job={job} onAdvance={advanceJob} />)}
                 </div>
               )}
+            </section>
+
+            {/* Contractor Trust Leaderboard */}
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-xl font-extrabold">Contractor Trust Leaderboard</h3>
+                  <p className="text-sm text-slate-500 mt-0.5">Scores update live as jobs complete. Cards flash green/red on score change.</p>
+                </div>
+                <span className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-bold text-emerald-700 ring-1 ring-emerald-200">● Live</span>
+              </div>
+              <div className="grid gap-4 md:grid-cols-3">
+                {[...livePros].sort((a, b) => b.score - a.score).map(pro => (
+                  <ContractorCard key={`${pro.id}-${scores[pro.id]}`} pro={pro} flash={flashMap[pro.id]} />
+                ))}
+              </div>
+            </section>
+
+            {/* How scoring works */}
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <h3 className="text-xl font-extrabold mb-1">How live scoring works</h3>
+              <p className="text-sm text-slate-500 mb-5">Every reliability event shifts a contractor's score. Recent events carry more weight than older ones (90-day decay).</p>
+              <div className="grid gap-3 md:grid-cols-4">
+                {[
+                  ['✓ On-time completion', '+0.6 pts',  'bg-emerald-50 ring-emerald-200 text-emerald-800'],
+                  ['⏱ Late arrival',       '−0.4 pts',  'bg-amber-50  ring-amber-200  text-amber-800'],
+                  ['⚠ Dispute filed',      '−2.5 pts',  'bg-red-50    ring-red-200    text-red-800'],
+                  ['✕ Cancellation',       '−1.2 pts',  'bg-slate-50  ring-slate-200  text-slate-700'],
+                ].map(([label, pts, cls]) => (
+                  <div key={label} className={`rounded-xl p-4 ring-1 ${cls}`}>
+                    <p className="font-bold text-sm">{label}</p>
+                    <p className="text-xl font-extrabold mt-1">{pts}</p>
+                    <p className="text-xs mt-1 opacity-70">× recency weight</p>
+                  </div>
+                ))}
+              </div>
             </section>
 
             {/* Why this matters */}
@@ -355,9 +563,9 @@
               <h3 className="text-xl font-extrabold">Why this phase matters</h3>
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                 {[
-                  ['Homeowner confidence', 'Every recommendation shows reasoning, reliability data, and score breakdown — not just a star rating.'],
-                  ['Pro fairness', 'Ranking is driven by on-time rate, job completions, and disputes — not ad budget or placement fees.'],
-                  ['Operational clarity', 'Agent activity logs make every decision visible. Fulfillment teams can audit and improve routing rules over time.'],
+                  ['Dynamic trust',       'Scores aren\'t frozen at onboarding. Every job outcome shifts a contractor\'s score with recency decay — improving behavior gets rewarded.'],
+                  ['Explainable routing', 'The agent shows exactly why a contractor ranked first: live score, breakdown, and event history visible to the homeowner.'],
+                  ['Self-correcting',     'Contractors who improve see scores recover. Bad actors get deprioritized automatically — no manual admin required.'],
                 ].map(([title, desc]) => (
                   <div key={title} className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
                     <p className="font-bold">{title}</p>
@@ -369,8 +577,8 @@
 
             {/* Pilot CTA */}
             <section className="rounded-2xl bg-slate-900 p-8 text-white">
-              <h3 className="text-2xl font-extrabold">Join phase-2 pilot</h3>
-              <p className="mt-2 text-slate-300">Get invited as a homeowner or local pro while we activate intelligent matching in Springfield.</p>
+              <h3 className="text-2xl font-extrabold">Join the Phase 3 pilot</h3>
+              <p className="mt-2 text-slate-300">LLM-powered intake parsing is next — replacing keyword rules with real language understanding and smart routing logic.</p>
               <PilotForm />
             </section>
           </main>
@@ -379,13 +587,12 @@
     }
 
     function PilotForm() {
-      const [email, setEmail] = React.useState('');
+      const [email,  setEmail]  = React.useState('');
       const [joined, setJoined] = React.useState(false);
       const onJoin = (e) => { e.preventDefault(); if (!email) return; setJoined(true); };
       return (
         <form onSubmit={onJoin} className="mt-4 flex flex-col gap-3 md:flex-row">
-          <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
+          <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com"
             className="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
           <button className="rounded-lg bg-indigo-500 px-5 py-3 font-bold hover:bg-indigo-400 transition-colors whitespace-nowrap">Request invite</button>
           {joined && <p className="self-center text-sm text-emerald-300">✓ You're on the list.</p>}
