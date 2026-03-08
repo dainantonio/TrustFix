@@ -1,30 +1,35 @@
 # TrustFix
 
-TrustFix is a local-first home services platform inspired by directory marketplaces, but built to outperform them with AI-driven reliability.
+TrustFix is a local-first home services marketplace designed to beat legacy directories with AI-powered reliability.
 
-## Product Direction
-We are building what traditional services directories promised, but better for local communities:
-- Homeowners discover vetted local pros quickly.
-- Pros win work based on reliability and delivery quality, not ad spend.
-- AI supports intake, matching, execution monitoring, and dispute resolution.
+## Current Direction
+We are now in the **next phase** of the prototype:
+- Keep the original marketplace experience (homeowners finding local pros).
+- Add practical AI in the core product journey rather than static strategy content.
+- Make every recommendation explainable, local, and trust-oriented.
 
-## Upgraded Experience (Current Prototype)
-The web prototype in `index.html` now reflects the original marketplace vision with practical AI upgrades:
-- Consumer-facing hero and trust metrics (on-time rate, response time, dispute turnaround).
-- AI Service Copilot panel that proposes urgency, first actions, and dispatch logic by issue type.
-- Local pro leaderboard with reliability score, ETA, and completed-job context.
-- Comparison section showing how TrustFix improves on legacy directories.
-- Waitlist capture for launch market activation.
+## What Was Added In This Phase
+`index.html` now includes an end-to-end **agentic job flow** demo:
+1. **AI Intake Parsing**
+   - User enters free-text issue details.
+   - AI logic infers likely trade (plumber/electrician/handyman), urgency, and action summary.
+2. **AI Matching**
+   - Candidate local pros are filtered by detected trade.
+   - Results are ranked by reliability score and ETA.
+3. **Execution Tracking**
+   - Job progresses through visible lifecycle states:
+     `Intake → Matching → Booked → In Progress → Completed`.
+4. **Pilot Conversion**
+   - Updated CTA and waitlist for phase-2 launch enrollment.
 
-## AI Capability Track
-1. **Intake AI**: Converts homeowner issue text into job scope, urgency level, and required trade.
-2. **Matching AI**: Ranks local pros by reliability score, skill fit, live availability, and distance.
-3. **Execution AI**: Watches milestones (arrival, completion, invoicing) and nudges both sides proactively.
-4. **Resolution AI**: Compiles evidence for disputes and recommends fair outcomes with human review.
+## Why It Matters
+- **For homeowners:** faster and clearer decisions with transparent reasoning.
+- **For local pros:** fair ranking based on performance and responsiveness.
+- **For operations:** visible workflow state improves fulfillment quality.
 
-## Near-Term Build Plan
-- Implement backend APIs for quote requests, matching, booking, and messaging.
-- Add authentication for homeowners, pros, and operators.
-- Persist reliability events and compute explainable trust scores.
-- Integrate payments with authorization hold and release conditions.
-- Add test automation for critical booking and payment flows.
+## Next Build Targets
+- Persist job events and stage transitions via backend APIs.
+- Add homeowner + pro auth and profile verification.
+- Store reliability events and produce explainable trust scores.
+- Integrate real messaging and payment hold/release flow.
+- Add automated tests for intake parsing, matching rank rules, and lifecycle transitions.

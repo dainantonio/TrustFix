@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrustFix | Local Pros, AI Reliability</title>
+  <title>TrustFix | Next-Phase Agentic Local Marketplace</title>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -24,76 +24,126 @@
   <div id="root"></div>
 
   <script type="text/babel">
-    const localPros = [
-      { name: 'Maya Plumbing Co.', trade: 'Plumber', score: 98, eta: '32m', jobs: 214, local: 'Northside' },
-      { name: 'Riverside Electric', trade: 'Electrician', score: 96, eta: '41m', jobs: 167, local: 'Downtown' },
-      { name: 'Evergreen Home Repair', trade: 'Handyman', score: 95, eta: '27m', jobs: 289, local: 'East End' },
+    const pros = [
+      { id: 1, name: 'Maya Plumbing Co.', trade: 'Plumber', score: 98, eta: 32, jobs: 214, local: 'Northside', emergency: true },
+      { id: 2, name: 'Riverside Electric', trade: 'Electrician', score: 96, eta: 41, jobs: 167, local: 'Downtown', emergency: true },
+      { id: 3, name: 'Evergreen Home Repair', trade: 'Handyman', score: 95, eta: 27, jobs: 289, local: 'East End', emergency: false },
+      { id: 4, name: 'Springfield Rooter', trade: 'Plumber', score: 94, eta: 24, jobs: 141, local: 'Westfield', emergency: true },
+      { id: 5, name: 'Solid Spark Systems', trade: 'Electrician', score: 93, eta: 35, jobs: 122, local: 'South Park', emergency: false },
     ];
 
-    const issueLibrary = {
-      'burst pipe': {
-        urgency: 'High',
-        firstStep: 'Shut off water and isolate the affected line.',
-        aiAction: 'Dispatch top 3 plumbers within 5 miles, prioritize rapid ETA + emergency completion history.'
-      },
-      'no power': {
-        urgency: 'High',
-        firstStep: 'Check breaker panel and isolate non-essential loads.',
-        aiAction: 'Route licensed electricians, require same-day diagnostic acceptance.'
-      },
-      'water heater': {
-        urgency: 'Medium',
-        firstStep: 'Disable heater power source and inspect leak points.',
-        aiAction: 'Rank pros by replacement lead time, warranty experience, and parts readiness.'
-      }
-    };
+    const stageOrder = ['Intake', 'Matching', 'Booked', 'In Progress', 'Completed'];
 
-    function AIPlanner() {
-      const [issue, setIssue] = React.useState('burst pipe');
+    function parseIssue(text) {
+      const value = text.toLowerCase();
+      if (value.includes('pipe') || value.includes('leak') || value.includes('drain')) {
+        return {
+          trade: 'Plumber',
+          urgency: 'High',
+          summary: 'Likely plumbing emergency. Route licensed plumbers with top completion and emergency response records.'
+        };
+      }
+      if (value.includes('power') || value.includes('outlet') || value.includes('breaker') || value.includes('light')) {
+        return {
+          trade: 'Electrician',
+          urgency: 'High',
+          summary: 'Electrical issue detected. Prioritize electricians with same-day diagnostics and high on-time arrival rate.'
+        };
+      }
+      return {
+        trade: 'Handyman',
+        urgency: 'Medium',
+        summary: 'General repair task. Match by reliability score, proximity, and recent homeowner ratings.'
+      };
+    }
+
+    function sortMatches(candidates) {
+      return [...candidates].sort((a, b) => (b.score - a.score) || (a.eta - b.eta));
+    }
+
+    function NextPhasePlanner() {
+      const [issue, setIssue] = React.useState('Burst pipe in basement, water rising quickly.');
       const [zip, setZip] = React.useState('01103');
-      const current = issueLibrary[issue];
+      const [stage, setStage] = React.useState(0);
+
+      const analysis = parseIssue(issue);
+      const matches = sortMatches(pros.filter((pro) => pro.trade === analysis.trade)).slice(0, 3);
+
+      const advanceStage = () => setStage((s) => Math.min(s + 1, stageOrder.length - 1));
+      const resetStage = () => setStage(0);
 
       return (
         <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <div className="flex items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">AI Service Copilot</p>
-              <h3 className="mt-1 text-xl font-extrabold">Plan and match a job in seconds</h3>
+              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">Next Phase: Agentic Job Flow</p>
+              <h2 className="mt-1 text-xl font-extrabold">AI intake → matching → execution tracker</h2>
             </div>
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Local-first routing</span>
+            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">Local-first + explainable</span>
           </div>
 
           <div className="mt-5 grid gap-4 md:grid-cols-2">
-            <label className="text-sm font-semibold text-slate-700">Issue type
-              <select value={issue} onChange={(e) => setIssue(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2">
-                <option value="burst pipe">Burst pipe</option>
-                <option value="no power">No power</option>
-                <option value="water heater">Water heater failure</option>
-              </select>
+            <label className="text-sm font-semibold text-slate-700">Describe your issue
+              <textarea
+                value={issue}
+                onChange={(e) => setIssue(e.target.value)}
+                rows="4"
+                className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2"
+              />
             </label>
 
-            <label className="text-sm font-semibold text-slate-700">ZIP code
-              <input value={zip} onChange={(e) => setZip(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2" />
-            </label>
+            <div className="space-y-3">
+              <label className="text-sm font-semibold text-slate-700">ZIP code
+                <input value={zip} onChange={(e) => setZip(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              </label>
+
+              <div className="rounded-xl bg-slate-900 p-4 text-slate-100">
+                <p className="text-sm"><strong>Detected trade:</strong> {analysis.trade}</p>
+                <p className="mt-1 text-sm"><strong>Urgency:</strong> {analysis.urgency}</p>
+                <p className="mt-2 text-xs text-slate-300">{analysis.summary}</p>
+                <p className="mt-2 text-xs text-slate-400">ZIP context {zip} applied in routing logic.</p>
+              </div>
+            </div>
           </div>
 
-          <div className="mt-5 rounded-xl bg-slate-900 p-4 text-slate-100">
-            <p><strong>Urgency:</strong> {current.urgency}</p>
-            <p className="mt-2"><strong>Immediate step:</strong> {current.firstStep}</p>
-            <p className="mt-2"><strong>AI dispatch logic:</strong> {current.aiAction}</p>
-            <p className="mt-2 text-xs text-slate-300">Zip context: {zip}. Matching results prioritize licensed pros from the nearest local zones.</p>
+          <div className="mt-6 grid gap-4 lg:grid-cols-3">
+            {matches.map((pro, idx) => (
+              <article key={pro.id} className="rounded-xl border border-slate-200 p-4">
+                <div className="flex items-center justify-between">
+                  <p className="font-bold">#{idx + 1} {pro.name}</p>
+                  <span className="rounded-md bg-emerald-50 px-2 py-1 text-xs font-bold text-emerald-700">Score {pro.score}</span>
+                </div>
+                <p className="mt-1 text-sm text-slate-600">{pro.trade} • {pro.local}</p>
+                <p className="mt-1 text-sm text-slate-600">ETA {pro.eta}m • {pro.jobs} jobs completed</p>
+              </article>
+            ))}
+          </div>
+
+          <div className="mt-6 rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Execution state</p>
+            <div className="mt-3 grid gap-2 md:grid-cols-5">
+              {stageOrder.map((label, idx) => (
+                <div key={label} className={`rounded-lg px-3 py-2 text-sm font-semibold ${idx <= stage ? 'bg-indigo-600 text-white' : 'bg-white text-slate-500 ring-1 ring-slate-200'}`}>
+                  {label}
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex gap-2">
+              <button onClick={advanceStage} className="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500">Advance Job</button>
+              <button onClick={resetStage} className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-700">Reset</button>
+            </div>
           </div>
         </section>
       );
     }
 
     function App() {
-      const [waitlistEmail, setWaitlistEmail] = React.useState('');
+      const [email, setEmail] = React.useState('');
       const [joined, setJoined] = React.useState(false);
 
       const onJoin = (e) => {
         e.preventDefault();
-        if (!waitlistEmail) return;
+        if (!email) return;
         setJoined(true);
       };
 
@@ -102,62 +152,27 @@
           <header className="hero-gradient text-white">
             <div className="mx-auto max-w-6xl px-6 py-16 md:py-24">
               <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">
-                Reliable Hands, Reinvented for Locals
+                Next Phase Prototype
               </p>
               <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-6xl">
-                TrustFix helps homeowners hire local pros with AI-verified reliability.
+                TrustFix: local pros marketplace with agentic reliability workflows.
               </h1>
               <p className="mt-5 max-w-3xl text-lg text-slate-200">
-                Angie-style discovery, but better for your neighborhood: transparent reliability scores, faster response times, and guided jobs from intake to resolution.
+                We kept the original marketplace vision and upgraded it with real AI behavior: dynamic intake parsing, transparent matching, and lifecycle tracking from booking to completion.
               </p>
-
-              <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {[
-                  ['On-time arrivals', '96%'],
-                  ['Local jobs completed', '10k+'],
-                  ['Avg. first response', '<8 min'],
-                  ['Disputes resolved', '<24h'],
-                ].map(([k, v]) => (
-                  <div key={k} className="rounded-xl bg-white/10 p-4 ring-1 ring-white/20 backdrop-blur-sm">
-                    <p className="text-2xl font-extrabold">{v}</p>
-                    <p className="text-sm text-slate-200">{k}</p>
-                  </div>
-                ))}
-              </div>
             </div>
           </header>
 
-          <main className="mx-auto max-w-6xl space-y-12 px-6 py-12">
-            <section className="grid gap-6 lg:grid-cols-2">
-              <AIPlanner />
-
-              <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600">Live local leaderboard</p>
-                <h3 className="mt-1 text-xl font-extrabold">Top trusted pros near you</h3>
-                <div className="mt-5 space-y-3">
-                  {localPros.map((pro) => (
-                    <article key={pro.name} className="rounded-xl border border-slate-200 p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-bold">{pro.name}</p>
-                          <p className="text-sm text-slate-600">{pro.trade} • {pro.local}</p>
-                        </div>
-                        <div className="rounded-lg bg-emerald-50 px-3 py-1 text-sm font-bold text-emerald-700">Score {pro.score}</div>
-                      </div>
-                      <div className="mt-2 text-sm text-slate-600">ETA {pro.eta} • {pro.jobs} completed jobs</div>
-                    </article>
-                  ))}
-                </div>
-              </section>
-            </section>
+          <main className="mx-auto max-w-6xl space-y-10 px-6 py-12">
+            <NextPhasePlanner />
 
             <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <h3 className="text-xl font-extrabold">How TrustFix beats legacy directories</h3>
+              <h3 className="text-xl font-extrabold">Why this phase matters</h3>
               <div className="mt-4 grid gap-4 md:grid-cols-3">
                 {[
-                  ['Real performance data', 'Scoring reflects arrivals, completions, callback rate, and homeowner confirmations.'],
-                  ['AI-guided fulfillment', 'Agents monitor jobs and trigger proactive updates when milestones slip.'],
-                  ['Local economy focus', 'Neighborhood pros are promoted for consistency, not ad budget size.'],
+                  ['Homeowner confidence', 'Every recommendation shows reasoning and reliability context.'],
+                  ['Pro fairness', 'Ranking uses service quality and responsiveness over ad budget.'],
+                  ['Operational clarity', 'Job stage tracker makes fulfillment and handoffs visible.'],
                 ].map(([title, desc]) => (
                   <div key={title} className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
                     <p className="font-bold">{title}</p>
@@ -168,20 +183,20 @@
             </section>
 
             <section className="rounded-2xl bg-slate-900 p-8 text-white">
-              <h3 className="text-2xl font-extrabold">Join the Springfield launch waitlist</h3>
-              <p className="mt-2 text-slate-300">Get early homeowner access or bring your local service business onto the platform.</p>
-              <form onSubmit={onJoin} className="mt-5 flex flex-col gap-3 md:flex-row">
+              <h3 className="text-2xl font-extrabold">Join phase-2 pilot</h3>
+              <p className="mt-2 text-slate-300">Get invited as a homeowner or local pro while we activate intelligent matching in Springfield.</p>
+              <form onSubmit={onJoin} className="mt-4 flex flex-col gap-3 md:flex-row">
                 <input
                   type="email"
                   required
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  value={waitlistEmail}
-                  onChange={(e) => setWaitlistEmail(e.target.value)}
                   className="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-white placeholder:text-slate-400"
                 />
-                <button className="rounded-lg bg-indigo-500 px-5 py-3 font-bold hover:bg-indigo-400">Request early access</button>
+                <button className="rounded-lg bg-indigo-500 px-5 py-3 font-bold hover:bg-indigo-400">Request invite</button>
               </form>
-              {joined && <p className="mt-3 text-sm text-emerald-300">You are in. We will send your invite before public launch.</p>}
+              {joined && <p className="mt-3 text-sm text-emerald-300">Success. You are on the phase-2 pilot list.</p>}
             </section>
           </main>
         </div>
