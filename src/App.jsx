@@ -119,6 +119,38 @@ function IntakeCard({ parsed }) {
 }
 
 // ─── App ──────────────────────────────────────────────────────────────────────
+function ResetButton() {
+  const [confirm, setConfirm] = React.useState(false);
+  const [done, setDone] = React.useState(false);
+
+  function handleReset() {
+    if (!confirm) { setConfirm(true); return; }
+    window.TrustFixReset.fullReset();
+    setDone(true);
+  }
+
+  return (
+    <div className="flex items-center gap-2">
+      {confirm && !done && (
+        <span className="text-xs text-amber-200 font-semibold animate-pulse">
+          Click again to confirm reset
+        </span>
+      )}
+      <button
+        onClick={handleReset}
+        onBlur={() => setTimeout(() => setConfirm(false), 200)}
+        className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-colors ${
+          confirm
+            ? 'bg-red-500 text-white hover:bg-red-400'
+            : 'bg-white/10 text-white ring-1 ring-white/30 hover:bg-white/20'
+        }`}
+      >
+        {confirm ? '⚠ Confirm Reset' : '↺ Reset Demo'}
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const [events] = React.useState(loadEvents);
   const [suspended, setSuspended] = React.useState(getSuspensions);
@@ -272,7 +304,10 @@ function App() {
         <div className="mx-auto max-w-7xl px-6 py-14">
           <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">TrustFix Agentic Marketplace</p>
           <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">Phase 2 + 3 + 4 in one visible frontend</h1>
-          <p className="mt-3 max-w-3xl text-slate-200">Data layer (live trust score), intelligence layer (LLM/fallback parsing + routing), and autonomy layer (watchdogs + proactive actions).</p>
+          <div className="mt-3 flex items-start justify-between gap-4 flex-wrap">
+            <p className="max-w-3xl text-slate-200">Data layer (live trust score), intelligence layer (LLM/fallback parsing + routing), and autonomy layer (watchdogs + proactive actions).</p>
+            <ResetButton />
+          </div>
           <div className="mt-7 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Stat label="Contractors" value={String(contractorStats.length)} />
             <Stat label="Open notifications" value={String(openNotifs.length)} />
