@@ -1,0 +1,1 @@
+# Disable Jekyll processing so static assets under custom folders are served as-is.

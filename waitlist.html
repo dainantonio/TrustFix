@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrustFix | Waitlist</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="src/styles.css?v=20260308b" />
+</head>
+<body class="bg-slate-50 text-slate-900">
+  <div class="mx-auto max-w-xl px-6 py-10">
+    <a href="index.html" class="text-sm font-semibold text-indigo-700 hover:underline">← Back to landing page</a>
+    <h1 class="mt-3 text-3xl font-extrabold">Join the TrustFix Waitlist</h1>
+    <p class="mt-2 text-slate-600">Get updates for launch access in your city.</p>
+    <form class="mt-6 space-y-3 rounded-xl border bg-white p-5" onsubmit="event.preventDefault(); this.querySelector('#msg').classList.remove('hidden');">
+      <input required type="email" placeholder="you@example.com" class="w-full rounded-lg border px-3 py-2" />
+      <select class="w-full rounded-lg border px-3 py-2">
+        <option>Homeowner</option>
+        <option>Local Pro</option>
+      </select>
+      <button class="w-full rounded-lg bg-indigo-600 px-4 py-2 font-bold text-white">Join Waitlist</button>
+      <p id="msg" class="hidden text-sm font-semibold text-emerald-600">Thanks — you’re on the list.</p>
+    </form>
+  </div>
+</body>
+</html>
