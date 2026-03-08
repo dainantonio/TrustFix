@@ -3,1379 +3,184 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrustFix — Find a Home Pro You Can Actually Trust</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet" />
+  <title>TrustFix | Search Local Contractors</title>
+  <link rel="stylesheet" href="src/styles.css?v=20260309c" />
   <style>
+    .container{max-width:1160px;margin:0 auto;padding:0 20px}
+    .welcome{padding:20px 0 8px;color:#475569;font-size:14px}
+    .search-shell{padding:16px;margin-bottom:14px}
+    .search-grid{display:grid;grid-template-columns:1.5fr .8fr .7fr auto;gap:10px}
+    .quick-filters{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .filter-chip{border:1px solid #cbd5e1;background:#fff;border-radius:999px;padding:6px 11px;font-size:12px;font-weight:700;cursor:pointer}
+    .filter-chip.active{border-color:#4f46e5;background:#eef2ff;color:#3730a3}
 
-/* ═══════════════════════════════════════════════
-   DESIGN TOKENS — Warm Light Theme
-═══════════════════════════════════════════════ */
-:root {
-  --white:     #ffffff;
-  --canvas:    #f8f7f4;        /* warm off-white, not sterile */
-  --canvas-2:  #f2f0ec;        /* slightly deeper warm */
-  --surface:   #ffffff;
-  --surface-2: #faf9f6;
-  --border:    rgba(0,0,0,0.07);
-  --border-hi: rgba(0,0,0,0.13);
+    .layout{display:grid;grid-template-columns:1fr 300px;gap:14px}
+    .results{display:grid;gap:10px}
+    .result-card{padding:14px;display:grid;grid-template-columns:64px 1fr auto;gap:12px;align-items:center}
+    .avatar{width:64px;height:64px;border-radius:999px;background:#eef2ff;display:flex;align-items:center;justify-content:center;font-size:27px}
+    .meta{font-size:13px;color:#64748b}
+    .highlights{display:flex;gap:8px;flex-wrap:wrap;margin-top:7px}
+    .side{padding:14px;height:fit-content;position:sticky;top:76px}
+    .inline{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:#475569}
 
-  /* Brand */
-  --teal:      #008f7a;        /* deeper teal for light bg contrast */
-  --teal-2:    #00b598;
-  --teal-bg:   rgba(0,143,122,0.07);
-  --teal-bg-hi:rgba(0,143,122,0.13);
+    .empty{padding:18px;text-align:center;color:#64748b}
 
-  /* Text */
-  --ink:       #1a1a1a;        /* near-black */
-  --ink-2:     #3d3d3d;
-  --ink-3:     #6b6b6b;
-  --ink-4:     #9a9a9a;
-
-  /* Signal colors */
-  --gold:      #d97706;
-  --gold-bg:   rgba(217,119,6,0.08);
-  --red:       #dc2626;
-  --red-bg:    rgba(220,38,38,0.07);
-  --green:     #16a34a;
-  --green-bg:  rgba(22,163,74,0.08);
-
-  --serif: 'Instrument Serif', Georgia, serif;
-  --sans:  'Plus Jakarta Sans', system-ui, sans-serif;
-  --mono:  'JetBrains Mono', monospace;
-
-  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 16px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
-  --shadow-lg: 0 12px 40px rgba(0,0,0,0.10), 0 4px 12px rgba(0,0,0,0.06);
-  --ease-out: cubic-bezier(0.16,1,0.3,1);
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-html { scroll-behavior: smooth; font-size: 16px; }
-body {
-  font-family: var(--sans);
-  background: var(--canvas);
-  color: var(--ink);
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
-a { text-decoration: none; color: inherit; }
-img { display: block; max-width: 100%; }
-
-/* ═══════════════════════════════════════════════
-   NAV
-═══════════════════════════════════════════════ */
-.nav {
-  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-  height: 64px; padding: 0 48px;
-  display: flex; align-items: center; justify-content: space-between;
-  background: rgba(248,247,244,0.92);
-  backdrop-filter: blur(20px) saturate(140%);
-  border-bottom: 1px solid var(--border);
-  transition: background 0.3s;
-}
-.nav-logo {
-  display: flex; align-items: center; gap: 9px;
-  font-family: var(--sans); font-size: 16px; font-weight: 700;
-  letter-spacing: -0.02em; color: var(--ink);
-}
-.nav-logo-mark {
-  width: 30px; height: 30px; border-radius: 8px;
-  background: linear-gradient(135deg, var(--teal), var(--teal-2));
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.nav-links { display: flex; align-items: center; gap: 28px; }
-.nav-links a {
-  font-size: 14px; font-weight: 500; color: var(--ink-3);
-  transition: color 0.2s;
-}
-.nav-links a:hover { color: var(--ink); }
-.btn-nav {
-  padding: 9px 20px; border-radius: 8px;
-  background: var(--teal); color: white;
-  font-size: 13px; font-weight: 600;
-  transition: background 0.2s, transform 0.15s;
-  display: inline-block;
-}
-.btn-nav:hover { background: var(--teal-2); transform: translateY(-1px); }
-
-/* ═══════════════════════════════════════════════
-   HERO
-═══════════════════════════════════════════════ */
-.hero {
-  min-height: 100vh;
-  padding: 64px 0 0;
-  display: flex; align-items: center;
-  position: relative;
-  overflow: hidden;
-}
-
-/* Subtle warm gradient background */
-.hero::before {
-  content: '';
-  position: absolute; inset: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 70% 60% at 15% 40%, rgba(0,181,152,0.07), transparent 65%),
-    radial-gradient(ellipse 50% 50% at 85% 20%, rgba(217,119,6,0.05), transparent 65%),
-    radial-gradient(ellipse 40% 40% at 60% 80%, rgba(0,143,122,0.04), transparent 60%);
-}
-
-.hero-inner {
-  position: relative; z-index: 2;
-  max-width: 1160px; margin: 0 auto;
-  padding: 90px 48px 100px;
-  display: grid;
-  grid-template-columns: 1fr 460px;
-  gap: 64px;
-  align-items: center;
-}
-
-/* Badge */
-.hero-badge {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 6px 14px 6px 10px;
-  background: var(--teal-bg);
-  border: 1px solid var(--teal-bg-hi);
-  border-radius: 100px;
-  margin-bottom: 28px;
-}
-.badge-dot {
-  width: 7px; height: 7px; border-radius: 50%;
-  background: var(--teal);
-  animation: pulse-green 2s infinite;
-}
-@keyframes pulse-green {
-  0%,100% { box-shadow: 0 0 0 0 rgba(0,143,122,0.5); }
-  50%      { box-shadow: 0 0 0 5px rgba(0,143,122,0); }
-}
-.badge-text {
-  font-size: 12px; font-weight: 600;
-  color: var(--teal); letter-spacing: 0.01em;
-}
-
-/* H1 */
-.hero-h1 {
-  font-family: var(--serif);
-  font-size: clamp(42px, 5vw, 68px);
-  font-weight: 400; line-height: 1.06;
-  letter-spacing: -0.02em; color: var(--ink);
-  margin-bottom: 24px;
-}
-.hero-h1 em { font-style: italic; color: var(--teal); }
-
-/* Sub */
-.hero-sub {
-  font-size: 18px; font-weight: 400; line-height: 1.7;
-  color: var(--ink-3); max-width: 46ch;
-  margin-bottom: 40px;
-}
-.hero-sub strong { color: var(--ink-2); font-weight: 600; }
-
-/* CTAs */
-.hero-ctas { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 16px; }
-
-.btn-primary {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 14px 28px; border-radius: 10px;
-  background: var(--teal); color: white;
-  font-size: 15px; font-weight: 600;
-  box-shadow: 0 4px 14px rgba(0,143,122,0.28);
-  transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-}
-.btn-primary:hover { background: var(--teal-2); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0,143,122,0.32); }
-
-.hero-demo-link {
-  font-size: 14px; font-weight: 500; color: var(--ink-3);
-  border-bottom: 1px solid var(--border-hi);
-  padding-bottom: 2px;
-  transition: color 0.2s, border-color 0.2s;
-}
-.hero-demo-link:hover { color: var(--ink); border-color: var(--ink-3); }
-
-/* Social proof */
-.hero-proof {
-  display: flex; align-items: center; gap: 12px; margin-top: 36px;
-}
-.proof-avatars { display: flex; }
-.proof-avatars span {
-  width: 34px; height: 34px; border-radius: 50%;
-  border: 2px solid white;
-  display: flex; align-items: center; justify-content: center;
-  font-family: var(--sans); font-size: 11px; font-weight: 700;
-  margin-left: -8px;
-}
-.proof-avatars span:first-child { margin-left: 0; }
-.proof-text { font-size: 13px; color: var(--ink-3); line-height: 1.5; }
-.proof-text strong { color: var(--ink); font-weight: 600; }
-
-/* ─── Hero right: Contractor card ─── */
-.hero-card {
-  background: white;
-  border-radius: 20px;
-  box-shadow: var(--shadow-lg);
-  overflow: hidden;
-  border: 1px solid var(--border);
-}
-
-.card-header {
-  padding: 18px 22px;
-  border-bottom: 1px solid var(--border);
-  background: var(--canvas);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.card-header-label {
-  font-size: 12px; font-weight: 700; color: var(--ink-3);
-  text-transform: uppercase; letter-spacing: 0.06em;
-}
-.card-live-badge {
-  display: flex; align-items: center; gap: 5px;
-  padding: 3px 9px; border-radius: 100px;
-  background: var(--green-bg);
-  font-size: 11px; font-weight: 700; color: var(--green);
-}
-.card-live-dot {
-  width: 6px; height: 6px; border-radius: 50%; background: var(--green);
-  animation: pulse-green 1.6s infinite;
-}
-
-/* Contractor rows in the card */
-.contractor-row {
-  display: flex; align-items: center;
-  padding: 14px 22px;
-  border-bottom: 1px solid var(--border);
-  gap: 14px;
-  transition: background 0.2s;
-}
-.contractor-row:hover { background: var(--canvas); }
-.contractor-row:last-child { border-bottom: none; }
-
-.con-avatar {
-  width: 40px; height: 40px; border-radius: 12px;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 14px; font-weight: 700;
-  flex-shrink: 0;
-}
-
-.con-info { flex: 1; min-width: 0; }
-.con-name { font-size: 14px; font-weight: 600; color: var(--ink); }
-.con-trade { font-size: 12px; color: var(--ink-4); margin-top: 2px; }
-
-.con-score-block { text-align: right; flex-shrink: 0; }
-.score-num {
-  font-family: var(--mono); font-size: 22px; font-weight: 700;
-  line-height: 1;
-}
-.score-num.high { color: var(--teal); }
-.score-num.mid  { color: var(--gold); }
-.score-num.low  { color: var(--red); }
-.score-bar-wrap { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
-.score-track { width: 52px; height: 4px; background: var(--canvas-2); border-radius: 2px; overflow: hidden; }
-.score-fill  { height: 100%; border-radius: 2px; transition: width 1.4s var(--ease-out); }
-.score-fill.high { background: var(--teal); }
-.score-fill.mid  { background: var(--gold); }
-.score-fill.low  { background: var(--red); }
-.score-label { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
-.score-label.high { color: var(--teal); }
-.score-label.mid  { color: var(--gold); }
-.score-label.low  { color: var(--red); }
-
-/* Alert at bottom of card */
-.card-alert {
-  margin: 14px 16px 16px;
-  padding: 12px 16px;
-  background: var(--gold-bg);
-  border: 1px solid rgba(217,119,6,0.18);
-  border-radius: 10px;
-  display: flex; align-items: flex-start; gap: 10px;
-}
-.alert-icon {
-  font-size: 16px; flex-shrink: 0; margin-top: 1px;
-}
-.alert-text { font-size: 12px; color: var(--ink-2); line-height: 1.5; }
-.alert-text strong { color: var(--gold); font-weight: 700; }
-
-/* ═══════════════════════════════════════════════
-   STAT STRIP
-═══════════════════════════════════════════════ */
-.stat-strip {
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  background: white;
-}
-.stat-strip-inner {
-  max-width: 1160px; margin: 0 auto;
-  display: grid; grid-template-columns: repeat(4, 1fr);
-}
-.stat-item {
-  padding: 36px 40px;
-  border-right: 1px solid var(--border);
-  position: relative;
-}
-.stat-item:last-child { border-right: none; }
-.stat-item::after {
-  content: '';
-  position: absolute; bottom: 0; left: 0; right: 0; height: 2px;
-  background: linear-gradient(90deg, var(--teal), transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.stat-item:hover::after { opacity: 1; }
-.stat-num {
-  font-family: var(--serif); font-size: 48px; font-weight: 400;
-  letter-spacing: -0.03em; color: var(--ink); line-height: 1;
-  margin-bottom: 8px;
-}
-.stat-num span { color: var(--teal); }
-.stat-label { font-size: 14px; font-weight: 400; color: var(--ink-3); line-height: 1.5; }
-
-/* ═══════════════════════════════════════════════
-   WHY TRUSTFIX — THE COMPARISON
-═══════════════════════════════════════════════ */
-.vs-section {
-  padding: 100px 0;
-  background: var(--canvas);
-}
-.section-inner { max-width: 1160px; margin: 0 auto; padding: 0 48px; }
-
-.section-kicker {
-  font-size: 12px; font-weight: 700; color: var(--teal);
-  text-transform: uppercase; letter-spacing: 0.10em; margin-bottom: 14px;
-}
-.section-h2 {
-  font-family: var(--serif); font-size: clamp(30px, 3.5vw, 50px);
-  font-weight: 400; line-height: 1.1; letter-spacing: -0.02em;
-  color: var(--ink); margin-bottom: 16px;
-}
-.section-h2 em { font-style: italic; color: var(--teal); }
-.section-sub {
-  font-size: 17px; font-weight: 400; color: var(--ink-3);
-  line-height: 1.7; max-width: 52ch; margin-bottom: 52px;
-}
-
-.compare-table {
-  width: 100%; border-collapse: collapse;
-  background: white;
-  border-radius: 16px; overflow: hidden;
-  border: 1px solid var(--border);
-  box-shadow: var(--shadow-sm);
-}
-.compare-thead th {
-  padding: 16px 24px;
-  font-size: 12px; font-weight: 700; letter-spacing: 0.04em;
-  background: var(--canvas);
-  border-bottom: 1px solid var(--border);
-  text-align: left; color: var(--ink-3);
-}
-.compare-thead th:not(:first-child) { text-align: center; }
-.col-tf { color: var(--teal) !important; }
-.col-al { color: var(--red) !important; }
-.compare-row td {
-  padding: 16px 24px;
-  font-size: 14px; color: var(--ink);
-  border-bottom: 1px solid var(--border);
-  vertical-align: middle;
-}
-.compare-row:last-child td { border-bottom: none; }
-.compare-row:hover td { background: var(--canvas); }
-.compare-row td:first-child { color: var(--ink-2); font-weight: 500; }
-.compare-row td:first-child .detail { display: block; font-size: 12px; color: var(--ink-4); font-weight: 400; margin-top: 2px; }
-.compare-row td:not(:first-child) { text-align: center; }
-
-.chk-yes {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 7px;
-  background: var(--green-bg); color: var(--green); font-size: 13px; font-weight: 700;
-}
-.chk-no {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 7px;
-  background: var(--red-bg); color: var(--red); font-size: 13px;
-}
-.chk-partial {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 26px; height: 26px; border-radius: 7px;
-  background: var(--gold-bg); color: var(--gold); font-size: 11px; font-weight: 700;
-}
-
-/* ═══════════════════════════════════════════════
-   HOW IT WORKS
-═══════════════════════════════════════════════ */
-.how-section {
-  padding: 100px 0;
-  background: white;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.steps-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 24px; margin-top: 52px;
-}
-.step-card {
-  background: var(--canvas);
-  border: 1px solid var(--border);
-  border-radius: 16px; padding: 36px 32px;
-  position: relative;
-  transition: border-color 0.25s, box-shadow 0.25s, transform 0.25s;
-}
-.step-card:hover {
-  border-color: rgba(0,143,122,0.25);
-  box-shadow: var(--shadow-md);
-  transform: translateY(-3px);
-}
-.step-num {
-  font-family: var(--serif); font-size: 72px; font-weight: 400;
-  color: rgba(0,0,0,0.05); line-height: 1;
-  position: absolute; top: 20px; right: 24px;
-  pointer-events: none; user-select: none;
-  transition: color 0.3s;
-}
-.step-card:hover .step-num { color: rgba(0,143,122,0.08); }
-.step-icon {
-  width: 48px; height: 48px; border-radius: 13px;
-  background: white;
-  border: 1px solid var(--border);
-  display: flex; align-items: center; justify-content: center;
-  font-size: 22px; margin-bottom: 20px;
-  box-shadow: var(--shadow-sm);
-  transition: border-color 0.25s;
-}
-.step-card:hover .step-icon { border-color: rgba(0,143,122,0.3); }
-.step-h3 { font-size: 16px; font-weight: 700; color: var(--ink); margin-bottom: 10px; }
-.step-p  { font-size: 14px; font-weight: 400; color: var(--ink-3); line-height: 1.7; }
-
-/* ═══════════════════════════════════════════════
-   HOW WE PROTECT YOU — Agent features (no log!)
-═══════════════════════════════════════════════ */
-.protect-section {
-  padding: 110px 0;
-  background: var(--canvas);
-}
-
-.protect-grid {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 20px; margin-top: 52px;
-}
-.protect-card {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 30px 28px;
-  display: flex; gap: 18px; align-items: flex-start;
-  transition: box-shadow 0.25s, transform 0.25s, border-color 0.25s;
-}
-.protect-card:hover {
-  box-shadow: var(--shadow-md);
-  transform: translateY(-2px);
-  border-color: rgba(0,143,122,0.2);
-}
-.protect-icon-wrap {
-  width: 46px; height: 46px; border-radius: 12px; flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 20px;
-}
-.protect-icon-wrap.amber  { background: var(--gold-bg); }
-.protect-icon-wrap.green  { background: var(--green-bg); }
-.protect-icon-wrap.teal   { background: var(--teal-bg); }
-.protect-icon-wrap.red    { background: var(--red-bg); }
-.protect-text h4 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 7px; }
-.protect-text p  { font-size: 14px; font-weight: 400; color: var(--ink-3); line-height: 1.65; }
-
-/* ═══════════════════════════════════════════════
-   TRUST SCORE
-═══════════════════════════════════════════════ */
-.score-section {
-  padding: 100px 0;
-  background: white;
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.score-layout {
-  display: grid; grid-template-columns: 1fr 1fr;
-  gap: 56px; align-items: center; margin-top: 52px;
-}
-
-.score-card-demo {
-  background: var(--canvas);
-  border: 1px solid var(--border);
-  border-radius: 20px;
-  overflow: hidden;
-  box-shadow: var(--shadow-md);
-}
-.scd-header {
-  padding: 18px 22px; border-bottom: 1px solid var(--border);
-  background: white;
-  display: flex; align-items: center; justify-content: space-between;
-}
-.scd-header h4 { font-size: 15px; font-weight: 700; color: var(--ink); }
-.scd-header p  { font-size: 12px; color: var(--ink-4); margin-top: 2px; }
-.scd-badge {
-  padding: 4px 11px; border-radius: 100px;
-  background: var(--teal-bg); color: var(--teal);
-  font-size: 11px; font-weight: 700;
-}
-.scd-score-row {
-  padding: 24px 22px 16px;
-  display: flex; align-items: flex-end; gap: 12px;
-}
-.scd-big-num {
-  font-family: var(--mono); font-size: 64px; font-weight: 700;
-  color: var(--teal); line-height: 1; letter-spacing: -0.04em;
-}
-.scd-big-label { font-size: 13px; font-weight: 700; color: var(--teal); margin-bottom: 8px; }
-.scd-factors { padding: 0 22px 22px; display: flex; flex-direction: column; gap: 13px; }
-.scd-factor { display: flex; flex-direction: column; gap: 5px; }
-.scd-factor-top {
-  display: flex; justify-content: space-between;
-  font-size: 12px; color: var(--ink-3);
-}
-.scd-factor-top span:last-child { font-weight: 600; color: var(--ink-2); }
-.scd-track { height: 5px; background: var(--canvas-2); border-radius: 3px; overflow: hidden; }
-.scd-fill  { height: 100%; border-radius: 3px; background: var(--teal); transition: width 1.4s var(--ease-out); }
-
-.score-points { display: flex; flex-direction: column; gap: 28px; }
-.score-point { display: flex; gap: 16px; align-items: flex-start; }
-.score-point-icon {
-  width: 38px; height: 38px; border-radius: 10px;
-  background: var(--teal-bg); flex-shrink: 0;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 18px; margin-top: 2px;
-}
-.score-point h4 { font-size: 15px; font-weight: 700; color: var(--ink); margin-bottom: 5px; }
-.score-point p  { font-size: 14px; font-weight: 400; color: var(--ink-3); line-height: 1.65; }
-
-/* ═══════════════════════════════════════════════
-   TESTIMONIALS
-═══════════════════════════════════════════════ */
-.testimonials-section {
-  padding: 80px 0 90px;
-  background: var(--canvas);
-}
-
-.testimonials-grid {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  gap: 20px; margin-top: 52px;
-}
-.testimonial-card {
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 14px; padding: 28px;
-  transition: box-shadow 0.25s, transform 0.25s;
-}
-.testimonial-card:hover { box-shadow: var(--shadow-md); transform: translateY(-3px); }
-.test-stars { font-size: 13px; color: var(--gold); letter-spacing: 3px; margin-bottom: 14px; }
-.test-quote {
-  font-family: var(--serif); font-size: 16px; font-weight: 400;
-  font-style: italic; color: var(--ink); line-height: 1.65;
-  margin-bottom: 20px;
-}
-.test-attr { display: flex; align-items: center; gap: 10px; }
-.test-avatar {
-  width: 36px; height: 36px; border-radius: 50%;
-  display: flex; align-items: center; justify-content: center;
-  font-size: 12px; font-weight: 700; flex-shrink: 0;
-}
-.test-name { font-size: 14px; font-weight: 700; color: var(--ink); }
-.test-title { font-size: 12px; color: var(--ink-4); margin-top: 2px; }
-
-/* ═══════════════════════════════════════════════
-   CTA SECTION
-═══════════════════════════════════════════════ */
-.cta-section {
-  padding: 100px 0 110px;
-  background: var(--teal);
-  position: relative; overflow: hidden;
-}
-.cta-section::before {
-  content: '';
-  position: absolute; inset: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 60% 80% at 10% 50%, rgba(255,255,255,0.06), transparent 60%),
-    radial-gradient(ellipse 40% 60% at 90% 20%, rgba(255,255,255,0.04), transparent 60%);
-}
-
-.cta-inner {
-  position: relative; z-index: 1;
-  max-width: 640px; margin: 0 auto;
-  padding: 0 48px; text-align: center;
-}
-.cta-kicker {
-  font-size: 12px; font-weight: 700; text-transform: uppercase;
-  letter-spacing: 0.10em; color: rgba(255,255,255,0.65);
-  margin-bottom: 14px;
-}
-.cta-h2 {
-  font-family: var(--serif); font-size: clamp(34px, 4vw, 54px);
-  font-weight: 400; letter-spacing: -0.02em; line-height: 1.1;
-  color: white; margin-bottom: 16px;
-}
-.cta-h2 em { font-style: italic; color: rgba(255,255,255,0.85); }
-.cta-sub {
-  font-size: 17px; font-weight: 400; color: rgba(255,255,255,0.78);
-  margin-bottom: 36px; line-height: 1.7;
-}
-
-/* Waitlist progress bar */
-.cta-progress-wrap {
-  max-width: 420px; margin: 0 auto 32px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.18);
-  border-radius: 12px; padding: 16px 20px;
-  text-align: left;
-}
-.cta-progress-top {
-  display: flex; justify-content: space-between; align-items: center;
-  margin-bottom: 10px;
-}
-.cta-progress-label {
-  font-size: 12px; font-weight: 700; color: rgba(255,255,255,0.9);
-  text-transform: uppercase; letter-spacing: 0.08em;
-}
-.cta-progress-count { font-size: 12px; color: rgba(255,255,255,0.6); }
-.cta-track {
-  height: 5px; background: rgba(255,255,255,0.15);
-  border-radius: 3px; overflow: hidden;
-}
-.cta-fill {
-  height: 100%; border-radius: 3px;
-  background: white; width: 0%;
-  transition: width 1.2s var(--ease-out);
-}
-.cta-progress-note {
-  font-size: 11px; color: rgba(255,255,255,0.55);
-  margin-top: 8px;
-}
-
-.cta-form {
-  display: flex; gap: 10px; max-width: 420px; margin: 0 auto 20px;
-}
-.cta-email {
-  flex: 1; padding: 14px 16px; border-radius: 9px;
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.28);
-  color: white; font-family: var(--sans); font-size: 14px;
-  outline: none; transition: background 0.2s, border-color 0.2s;
-}
-.cta-email:focus { background: rgba(255,255,255,0.20); border-color: rgba(255,255,255,0.5); }
-.cta-email::placeholder { color: rgba(255,255,255,0.5); }
-
-.btn-cta {
-  padding: 14px 22px; border-radius: 9px;
-  background: white; color: var(--teal);
-  font-size: 14px; font-weight: 700; white-space: nowrap;
-  transition: background 0.2s, transform 0.15s;
-  display: inline-block;
-}
-.btn-cta:hover { background: var(--canvas); transform: translateY(-1px); }
-
-.cta-disclaimer { font-size: 12px; color: rgba(255,255,255,0.5); margin-bottom: 20px; }
-.cta-links { display: flex; justify-content: center; gap: 20px; }
-.cta-links a {
-  font-size: 13px; color: rgba(255,255,255,0.65);
-  border-bottom: 1px solid rgba(255,255,255,0.25);
-  padding-bottom: 2px; transition: color 0.2s;
-}
-.cta-links a:hover { color: white; }
-
-/* ═══════════════════════════════════════════════
-   FOOTER
-═══════════════════════════════════════════════ */
-.footer {
-  padding: 36px 48px;
-  background: white;
-  border-top: 1px solid var(--border);
-}
-.footer-inner {
-  max-width: 1160px; margin: 0 auto;
-  display: flex; align-items: center; justify-content: space-between;
-  flex-wrap: wrap; gap: 16px;
-}
-.footer-logo {
-  display: flex; align-items: center; gap: 8px;
-  font-size: 14px; font-weight: 700; color: var(--ink);
-}
-.footer-logo-mark {
-  width: 20px; height: 20px; border-radius: 5px;
-  background: linear-gradient(135deg, var(--teal), var(--teal-2));
-  display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.footer-links { display: flex; gap: 24px; flex-wrap: wrap; }
-.footer-links a { font-size: 13px; color: var(--ink-4); transition: color 0.2s; }
-.footer-links a:hover { color: var(--ink-2); }
-.footer-copy { font-size: 12px; color: var(--ink-4); }
-
-/* ═══════════════════════════════════════════════
-   SCROLL REVEAL
-═══════════════════════════════════════════════ */
-.reveal {
-  opacity: 0; transform: translateY(20px);
-  transition: opacity 0.6s var(--ease-out), transform 0.6s var(--ease-out);
-}
-.reveal.v { opacity: 1; transform: translateY(0); }
-.d1 { transition-delay: 0.08s; }
-.d2 { transition-delay: 0.16s; }
-.d3 { transition-delay: 0.24s; }
-
-/* ═══════════════════════════════════════════════
-   MOBILE HERO CARD
-═══════════════════════════════════════════════ */
-.hero-mobile-card {
-  display: none;
-  background: white;
-  border: 1px solid var(--border);
-  border-radius: 16px;
-  padding: 18px;
-  box-shadow: var(--shadow-md);
-  margin-top: 8px;
-}
-.hmc-header {
-  font-size: 11px; font-weight: 700; color: var(--ink-4);
-  text-transform: uppercase; letter-spacing: 0.06em;
-  margin-bottom: 12px;
-}
-.hmc-row {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 10px 0; border-bottom: 1px solid var(--border);
-}
-.hmc-row:last-of-type { border-bottom: none; }
-.hmc-name { font-size: 13px; font-weight: 600; color: var(--ink); }
-.hmc-trade { font-size: 11px; color: var(--ink-4); margin-top: 2px; }
-.hmc-score { font-family: var(--mono); font-size: 18px; font-weight: 700; }
-.hmc-score.high { color: var(--teal); }
-.hmc-score.mid  { color: var(--gold); }
-.hmc-alert {
-  margin-top: 12px; padding: 10px 12px;
-  background: var(--gold-bg); border: 1px solid rgba(217,119,6,0.18);
-  border-radius: 9px; font-size: 12px; color: var(--ink-2); line-height: 1.5;
-}
-.hmc-alert strong { color: var(--gold); }
-
-/* ═══════════════════════════════════════════════
-   RESPONSIVE
-═══════════════════════════════════════════════ */
-@media (max-width: 900px) {
-  .nav { padding: 0 20px; }
-  .nav-links { display: none; }
-  .hero-inner { grid-template-columns: 1fr; padding: 48px 20px 60px; gap: 36px; }
-  .hero-card { display: none; }
-  .hero-mobile-card { display: block; }
-  .stat-strip-inner { grid-template-columns: 1fr 1fr; }
-  .stat-item { border-right: none; border-bottom: 1px solid var(--border); }
-  .section-inner { padding: 0 20px; }
-  .vs-section, .how-section, .protect-section, .score-section, .testimonials-section { padding: 64px 0; }
-  .steps-grid { grid-template-columns: 1fr; gap: 16px; }
-  .protect-grid { grid-template-columns: 1fr; }
-  .score-layout { grid-template-columns: 1fr; gap: 32px; }
-  .testimonials-grid { grid-template-columns: 1fr; gap: 16px; }
-  .cta-form { flex-direction: column; }
-  .cta-inner { padding: 0 20px; }
-  .footer { padding: 28px 20px; }
-}
-
+    @media(max-width:980px){
+      .layout{grid-template-columns:1fr}
+      .search-grid{grid-template-columns:1fr}
+      .side{position:static}
+    }
   </style>
 </head>
 <body>
-
-<!-- ─── NAV ─── -->
-<nav class="nav">
-  <a href="index.html" class="nav-logo">
-    <span class="nav-logo-mark">
-      <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-        <path d="M7 1L2 8h5l0 5 5-7H7L7 1z" fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round"/>
-      </svg>
-    </span>
-    TrustFix
-  </a>
-  <div class="nav-links">
-    <a href="#vs">Why TrustFix</a>
-    <a href="#how">How it works</a>
-    <a href="#protect">Protection</a>
-    <a href="roadmap.html">Roadmap</a>
-    <a href="demo.html">Demo</a>
-  </div>
-  <a href="waitlist.html" class="btn-nav">Get Early Access</a>
-</nav>
-
-
-<!-- ─── HERO ─── -->
-<section class="hero">
-  <div class="hero-inner">
-    <div class="hero-left">
-
-      <div class="hero-badge">
-        <span class="badge-dot"></span>
-        <span class="badge-text">Now open in Columbus, OH</span>
-      </div>
-
-      <h1 class="hero-h1">
-        Find a home pro<br/>
-        you can <em>actually</em><br/>
-        trust.
-      </h1>
-
-      <p class="hero-sub">
-        Every contractor on TrustFix is ranked by
-        <strong>real job outcomes</strong> — not paid ads, not fake reviews.
-        See on-time rates and complaint history before you book.
-        We watch over your job after, too.
-      </p>
-
-      <div class="hero-ctas">
-        <a href="waitlist.html" class="btn-primary">
-          Get Early Access — It's Free
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-      </div>
-      <p style="font-size:13px; color:var(--ink-4); margin-bottom: 0;">
-        or <a href="demo.html" class="hero-demo-link">see a live example →</a>
-      </p>
-
-      <div class="hero-proof">
-        <div class="proof-avatars">
-          <span style="background:linear-gradient(135deg,#2d6a4f,#40916c);color:#d8f3dc;">SM</span>
-          <span style="background:linear-gradient(135deg,#1d3557,#457b9d);color:#a8dadc;">MT</span>
-          <span style="background:linear-gradient(135deg,#6b2737,#c1121f);color:#ffd6d8;">DK</span>
-          <span style="background:linear-gradient(135deg,#3d405b,#81b29a);color:#e8f4f0;">JR</span>
-        </div>
-        <div class="proof-text">
-          <strong>247 homeowners &amp; pros</strong> already on the waitlist<br/>
-          <span style="color:var(--teal);font-weight:600;">Pilot launching Columbus, OH — Q2 2026</span>
-        </div>
-      </div>
-    </div>
-
-    <!-- Desktop: Contractor score card -->
-    <div class="hero-card">
-      <div class="card-header">
-        <span class="card-header-label">Top matches near you</span>
-        <span class="card-live-badge">
-          <span class="card-live-dot"></span>
-          Live scores
-        </span>
-      </div>
-
-      <div class="contractor-row">
-        <div class="con-avatar" style="background:linear-gradient(135deg,#2d6a4f,#52b788);color:white;">MP</div>
-        <div class="con-info">
-          <div class="con-name">Maya Plumbing Co.</div>
-          <div class="con-trade">Plumbing · 124 jobs completed · Licensed</div>
-        </div>
-        <div class="con-score-block">
-          <div class="score-num high">97</div>
-          <div class="score-bar-wrap">
-            <div class="score-track"><div class="score-fill high" id="bar-1" style="width:0%"></div></div>
-            <span class="score-label high">Elite</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="contractor-row">
-        <div class="con-avatar" style="background:linear-gradient(135deg,#1d3557,#457b9d);color:white;">CA</div>
-        <div class="con-info">
-          <div class="con-name">CoolAir Pro</div>
-          <div class="con-trade">HVAC · 88 jobs completed · Licensed</div>
-        </div>
-        <div class="con-score-block">
-          <div class="score-num mid">78</div>
-          <div class="score-bar-wrap">
-            <div class="score-track"><div class="score-fill mid" id="bar-2" style="width:0%"></div></div>
-            <span class="score-label mid">Good</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="contractor-row">
-        <div class="con-avatar" style="background:linear-gradient(135deg,#6b2737,#9e2a2b);color:white;">MH</div>
-        <div class="con-info">
-          <div class="con-name">Marcus HVAC</div>
-          <div class="con-trade">HVAC · 61 jobs completed · Licensed</div>
-        </div>
-        <div class="con-score-block">
-          <div class="score-num low">41</div>
-          <div class="score-bar-wrap">
-            <div class="score-track"><div class="score-fill low" id="bar-3" style="width:0%"></div></div>
-            <span class="score-label low">Caution</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="card-alert">
-        <span class="alert-icon">⚠️</span>
-        <div class="alert-text">
-          <strong>Heads up:</strong> Marcus HVAC was 22 minutes late on their last 2 jobs. TrustFix will alert you the moment that happens and have a backup ready.
-        </div>
-      </div>
-    </div>
-
-    <!-- Mobile: Simplified card -->
-    <div class="hero-mobile-card">
-      <div class="hmc-header">Top-rated pros near you</div>
-      <div class="hmc-row">
-        <div><div class="hmc-name">Maya Plumbing Co.</div><div class="hmc-trade">Plumbing · 124 jobs</div></div>
-        <div class="hmc-score high">97</div>
-      </div>
-      <div class="hmc-row">
-        <div><div class="hmc-name">CoolAir Pro</div><div class="hmc-trade">HVAC · 88 jobs</div></div>
-        <div class="hmc-score mid">78</div>
-      </div>
-      <div class="hmc-alert">
-        <strong>Heads up:</strong> Marcus HVAC has 2 late arrivals recently. We'd flag that before you book.
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─── STAT STRIP ─── -->
-<div class="stat-strip">
-  <div class="stat-strip-inner">
-    <div class="stat-item">
-      <div class="stat-num" data-target="89"><span>0</span>%</div>
-      <div class="stat-label">On-time job completion<br/>in pilot market data</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-target="12"><span>0</span>+</div>
-      <div class="stat-label">Things we track about<br/>every contractor, every job</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-target="247"><span>0</span></div>
-      <div class="stat-label">Homeowners &amp; pros already<br/>on the waitlist</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-num" data-target="3"><span>0</span>x</div>
-      <div class="stat-label">Faster to find a replacement<br/>than calling around yourself</div>
-    </div>
-  </div>
-</div>
-
-
-<!-- ─── WHY TRUSTFIX ─── -->
-<section class="vs-section" id="vs">
-  <div class="section-inner">
-    <p class="section-kicker reveal">Why homeowners are switching</p>
-    <h2 class="section-h2 reveal d1">
-      The problem with<br/><em>Angie's List and HomeAdvisor.</em>
-    </h2>
-    <p class="section-sub reveal d2">
-      Angi's revenue has dropped 30% since 2022 because homeowners figured out what's happening: the contractors who appear first paid to be there. HomeAdvisor sends your contact info to up to 8 contractors at once. TrustFix shows you who actually does good work — ranked by real outcomes, not who spent the most.
-    </p>
-
-    <div class="reveal d3">
-      <table class="compare-table">
-        <thead class="compare-thead">
-          <tr>
-            <th style="width:38%">Feature</th>
-            <th class="col-tf">TrustFix</th>
-            <th class="col-al">Angie's List</th>
-            <th style="color:var(--ink-4)">HomeAdvisor</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr class="compare-row">
-            <td>Who shows up first<span class="detail">How the top results are chosen</span></td>
-            <td><span class="chk-yes">✓</span><span class="detail" style="color:var(--ink-3)">Best track record</span></td>
-            <td><span class="chk-no">✕</span><span class="detail">Paid placement</span></td>
-            <td><span class="chk-no">✕</span><span class="detail">Paid placement</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>On-time rate visible<span class="detail">Before you book</span></td>
-            <td><span class="chk-yes">✓</span></td>
-            <td><span class="chk-no">✕</span></td>
-            <td><span class="chk-no">✕</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>Complaint history shown<span class="detail">Not hidden in the fine print</span></td>
-            <td><span class="chk-yes">✓</span></td>
-            <td><span class="chk-partial">~</span><span class="detail">Often buried</span></td>
-            <td><span class="chk-no">✕</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>Alert if your pro is late<span class="detail">Before it becomes a problem</span></td>
-            <td><span class="chk-yes">✓</span></td>
-            <td><span class="chk-no">✕</span></td>
-            <td><span class="chk-no">✕</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>Backup pro lined up<span class="detail">If your contractor doesn't show</span></td>
-            <td><span class="chk-yes">✓</span></td>
-            <td><span class="chk-no">✕</span></td>
-            <td><span class="chk-no">✕</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>Overpriced quote warning<span class="detail">Before you agree to anything</span></td>
-            <td><span class="chk-yes">✓</span></td>
-            <td><span class="chk-no">✕</span></td>
-            <td><span class="chk-no">✕</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>Bad contractors removed<span class="detail">Not just rated lower</span></td>
-            <td><span class="chk-yes">✓</span></td>
-            <td><span class="chk-no">✕</span></td>
-            <td><span class="chk-no">✕</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>Sells your info to contractors<span class="detail">Multiple companies call you</span></td>
-            <td><span class="chk-yes" style="background:var(--green-bg);">✕</span><span class="detail" style="color:var(--green)">Never</span></td>
-            <td><span class="chk-partial">~</span></td>
-            <td><span class="chk-no">✓</span><span class="detail">Up to 8 at once</span></td>
-          </tr>
-          <tr class="compare-row">
-            <td>Who the platform works for<span class="detail">Where the money comes from</span></td>
-            <td><span style="font-size:13px;color:var(--teal);font-weight:700;">You</span></td>
-            <td><span style="font-size:13px;color:var(--red);">Contractors</span></td>
-            <td><span style="font-size:13px;color:var(--red);">Lead reselling</span></td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─── HOW IT WORKS ─── -->
-<section class="how-section" id="how">
-  <div class="section-inner">
-    <p class="section-kicker reveal">How it works</p>
-    <h2 class="section-h2 reveal d1">
-      Getting help at home<br/><em>should be this simple.</em>
-    </h2>
-
-    <div class="steps-grid">
-      <div class="step-card reveal">
-        <div class="step-num">01</div>
-        <div class="step-icon">🗣️</div>
-        <h3 class="step-h3">Tell us what's wrong</h3>
-        <p class="step-p">Just type what's happening — "my AC stopped cooling" or "there's a pipe leaking under my sink." We figure out what kind of help you need and find pros near you.</p>
-      </div>
-      <div class="step-card reveal d1">
-        <div class="step-num">02</div>
-        <div class="step-icon">📊</div>
-        <h3 class="step-h3">See who's actually reliable</h3>
-        <p class="step-p">Every pro shows their real track record — how often they show up on time, how many complaints they've had, what other homeowners paid. No paid rankings. No fake stars.</p>
-      </div>
-      <div class="step-card reveal d2">
-        <div class="step-num">03</div>
-        <div class="step-icon">🛡️</div>
-        <h3 class="step-h3">We look out for you</h3>
-        <p class="step-p">Once you've booked, TrustFix quietly keeps watch. If your pro is late, the quote looks off, or something doesn't add up — we tell you and handle it.</p>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─── HOW WE PROTECT YOU ─── -->
-<section class="protect-section" id="protect">
-  <div class="section-inner">
-    <p class="section-kicker reveal">Your protection, built in</p>
-    <h2 class="section-h2 reveal d1">
-      We watch over<br/><em>your job for you.</em>
-    </h2>
-    <p class="section-sub reveal d2">
-      After you book, TrustFix keeps a quiet eye on things — your contractor's arrival, the quote you were given, their recent record. If something looks off, you'll know before it costs you money.
-    </p>
-
-    <div class="protect-grid">
-      <div class="protect-card reveal">
-        <div class="protect-icon-wrap amber">⏰</div>
-        <div class="protect-text">
-          <h4>Late contractor alert</h4>
-          <p>If your contractor is more than 15 minutes late, you get a notification right away — along with a backup option already lined up. No waiting, no phone calls.</p>
-        </div>
-      </div>
-      <div class="protect-card reveal d1">
-        <div class="protect-icon-wrap green">🔄</div>
-        <div class="protect-text">
-          <h4>Backup already lined up</h4>
-          <p>If 45 minutes pass with no show, we've already found the next best available pro nearby — same type of work, strong track record. One tap and they're coming.</p>
-        </div>
-      </div>
-      <div class="protect-card reveal d2">
-        <div class="protect-icon-wrap amber">💰</div>
-        <div class="protect-text">
-          <h4>Overpriced quote warning</h4>
-          <p>When a quote comes in significantly higher than what other homeowners typically pay for the same job, we flag it before you say yes. No surprises on your bill.</p>
-        </div>
-      </div>
-      <div class="protect-card reveal d3">
-        <div class="protect-icon-wrap red">🚫</div>
-        <div class="protect-text">
-          <h4>Repeat problems — removed</h4>
-          <p>Contractors with repeated complaints don't just get buried in the results — they're removed entirely. The platform enforces its own standards so you don't have to.</p>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─── TRUST SCORE ─── -->
-<section class="score-section">
-  <div class="section-inner">
-    <p class="section-kicker reveal">Real ratings, not paid ones</p>
-    <h2 class="section-h2 reveal d1">
-      Every score is earned<br/><em>on the job.</em>
-    </h2>
-    <p class="section-sub reveal d2">
-      Every score is calculated from real job history — how often they showed up on time, how many complaints they've had, what their average rating has been recently. No contractor can pay to improve it.
-    </p>
-
-    <div class="score-layout">
-      <div class="reveal">
-        <div class="score-card-demo">
-          <div class="scd-header">
-            <div>
-              <h4>Maya Plumbing Co.</h4>
-              <p>Plumbing · Columbus, OH · 124 jobs</p>
-            </div>
-            <span class="scd-badge">Elite</span>
-          </div>
-          <div class="scd-score-row">
-            <div class="scd-big-num" id="score-count">0</div>
-            <div class="scd-big-label">/ 100</div>
-          </div>
-          <div class="scd-factors">
-            <div class="scd-factor">
-              <div class="scd-factor-top"><span>Showed up on time</span><span>100%</span></div>
-              <div class="scd-track"><div class="scd-fill" id="sf-1" style="width:0%"></div></div>
-            </div>
-            <div class="scd-factor">
-              <div class="scd-factor-top"><span>Jobs completed (last 12 months)</span><span>92%</span></div>
-              <div class="scd-track"><div class="scd-fill" id="sf-2" style="width:0%"></div></div>
-            </div>
-            <div class="scd-factor">
-              <div class="scd-factor-top"><span>No complaints on record</span><span>100%</span></div>
-              <div class="scd-track"><div class="scd-fill" id="sf-3" style="width:0%"></div></div>
-            </div>
-            <div class="scd-factor">
-              <div class="scd-factor-top"><span>Homeowner rating average</span><span>5.0 ★</span></div>
-              <div class="scd-track"><div class="scd-fill" id="sf-4" style="width:0%"></div></div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="score-points">
-        <div class="score-point reveal">
-          <div class="score-point-icon">📅</div>
-          <div>
-            <h4>Recent jobs count more</h4>
-            <p>A complaint from two years ago counts less than a perfect job last week. The score reflects who a contractor is right now — not when they first signed up.</p>
-          </div>
-        </div>
-        <div class="score-point reveal d1">
-          <div class="score-point-icon">🔍</div>
-          <div>
-            <h4>More than just star ratings</h4>
-            <p>We track on-time arrivals, complaints, cancellations, how quickly they respond, and how their ratings have changed over time — all in one honest number.</p>
-          </div>
-        </div>
-        <div class="score-point reveal d2">
-          <div class="score-point-icon">📋</div>
-          <div>
-            <h4>You see the full breakdown</h4>
-            <p>Every contractor's profile shows exactly what's driving their score — not just a number. You can see for yourself before you decide.</p>
-          </div>
-        </div>
-        <div class="score-point reveal d3">
-          <div class="score-point-icon">🚫</div>
-          <div>
-            <h4>You can't buy a better score</h4>
-            <p>No contractor can pay to rank higher. The only way to improve is to do better work, show up on time, and treat homeowners right.</p>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─── TESTIMONIALS ─── -->
-<section class="testimonials-section">
-  <div class="section-inner">
-    <p class="section-kicker reveal">What people are saying</p>
-    <h2 class="section-h2 reveal d1">From the pilot market.</h2>
-
-    <div class="testimonials-grid">
-      <div class="testimonial-card reveal">
-        <div class="test-stars">★★★★★</div>
-        <p class="test-quote">"My HVAC contractor was running late and TrustFix already had a backup option ready for me. I didn't have to make a single phone call."</p>
-        <div class="test-attr">
-          <div class="test-avatar" style="background:linear-gradient(135deg,#2d6a4f,#40916c);color:#d8f3dc;">SM</div>
-          <div>
-            <div class="test-name">Sarah M.</div>
-            <div class="test-title">Homeowner · Columbus, OH</div>
-          </div>
-        </div>
-      </div>
-      <div class="testimonial-card reveal d1">
-        <div class="test-stars">★★★★★</div>
-        <p class="test-quote">"My score is 97 and customers can see that the moment they find me. It's replaced every review site I used to pay for — and it actually means something."</p>
-        <div class="test-attr">
-          <div class="test-avatar" style="background:linear-gradient(135deg,#1d3557,#457b9d);color:#a8dadc;">MT</div>
-          <div>
-            <div class="test-name">Marcus T.</div>
-            <div class="test-title">Master Plumber · Springfield, OH</div>
-          </div>
-        </div>
-      </div>
-      <div class="testimonial-card reveal d2">
-        <div class="test-stars">★★★★★</div>
-        <p class="test-quote">"TrustFix flagged a quote that was way above average before I approved anything. Saved me over $300. That alone was worth it."</p>
-        <div class="test-attr">
-          <div class="test-avatar" style="background:linear-gradient(135deg,#6b2737,#c1121f);color:#ffd6d8;">DK</div>
-          <div>
-            <div class="test-name">Diane K.</div>
-            <div class="test-title">Homeowner · Dublin, OH</div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─── CTA ─── -->
-<section class="cta-section">
-  <div class="cta-inner">
-    <p class="cta-kicker">Early access · Columbus, OH</p>
-    <h2 class="cta-h2">
-      Ready to stop<br/><em>worrying about it?</em>
-    </h2>
-    <p class="cta-sub">
-      TrustFix launches in Columbus, OH in Q2 2026. Join for free and get first access, founding member pricing, and a say in how we build it.
-    </p>
-
-    <div class="cta-progress-wrap">
-      <div class="cta-progress-top">
-        <span class="cta-progress-label">Columbus Launch</span>
-        <span class="cta-progress-count">247 / 500 spots</span>
-      </div>
-      <div class="cta-track">
-        <div class="cta-fill" id="cta-fill"></div>
-      </div>
-      <p class="cta-progress-note">49% of founding spots claimed · homeowners &amp; pros welcome</p>
-    </div>
-
-    <form class="cta-form" onsubmit="handleSubmit(event)">
-      <input type="email" class="cta-email" placeholder="your@email.com" id="cta-email" required />
-      <a href="waitlist.html" class="btn-cta">Claim Your Spot →</a>
-    </form>
-
-    <p class="cta-disclaimer">No payment required. Unsubscribe any time. Your info is never sold.</p>
-    <div class="cta-links">
-      <a href="demo.html">See a live demo</a>
-      <a href="roadmap.html">View our roadmap</a>
-      <a href="contractor.html?id=1">Sample contractor profile</a>
-    </div>
-  </div>
-</section>
-
-
-<!-- ─── FOOTER ─── -->
-<footer class="footer">
-  <div class="footer-inner">
-    <div class="footer-logo">
-      <span class="footer-logo-mark">
-        <svg width="10" height="10" viewBox="0 0 14 14" fill="none">
-          <path d="M7 1L2 8h5l0 5 5-7H7L7 1z" fill="white" stroke="white" stroke-width="0.5" stroke-linejoin="round"/>
-        </svg>
-      </span>
-      TrustFix
-    </div>
-    <div class="footer-links">
+  <nav class="tf-nav">
+    <strong>TrustFix</strong>
+    <div class="tf-nav-links">
+      <a href="index.html">Search Pros</a>
       <a href="demo.html">Live Demo</a>
       <a href="contractor.html?id=1">Contractor Profile</a>
-      <a href="roadmap.html">Roadmap</a>
       <a href="waitlist.html">Waitlist</a>
+      <a href="roadmap.html">Roadmap</a>
     </div>
-    <p class="footer-copy">© 2026 TrustFix. Home pros you can actually trust.</p>
-  </div>
-</footer>
+  </nav>
 
+  <main class="container">
+    <p class="welcome">Welcome — start searching and compare pros by real reliability data.</p>
 
-<script>
-/* Scroll reveal */
-const obs = new IntersectionObserver(entries => entries.forEach(e => {
-  if (e.isIntersecting) e.target.classList.add('v');
-}), { threshold: 0.08 });
-document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+    <section class="card search-shell">
+      <h1 style="margin:0 0 10px;font-size:30px">Find trusted home service pros near you</h1>
+      <div class="search-grid">
+        <input id="q" class="tf-input" placeholder="Search by service or contractor name (e.g. plumbing, HVAC, Maya)" />
+        <input id="location" class="tf-input" placeholder="City or ZIP" value="Springfield" />
+        <select id="sort" class="tf-select">
+          <option value="score">Sort: Trust score</option>
+          <option value="eta">Sort: Fastest ETA</option>
+          <option value="jobs">Sort: Least active jobs</option>
+        </select>
+        <button id="resetBtn" class="btn-ghost" type="button">Reset</button>
+      </div>
+      <div class="quick-filters">
+        <button class="filter-chip active" data-trade="all">All services</button>
+        <button class="filter-chip" data-trade="plumbing">Plumbing</button>
+        <button class="filter-chip" data-trade="hvac">HVAC</button>
+        <button class="filter-chip" data-trade="mitigation">Water Damage</button>
+      </div>
+    </section>
 
-/* Hero score bars */
-setTimeout(() => {
-  const bars = [{ id:'bar-1', w:97 }, { id:'bar-2', w:78 }, { id:'bar-3', w:41 }];
-  bars.forEach(({ id, w }, i) => setTimeout(() => {
-    const el = document.getElementById(id);
-    if (el) el.style.width = w + '%';
-  }, i * 220 + 400));
-}, 600);
+    <div class="layout">
+      <section>
+        <div class="inline" style="margin:0 0 8px">
+          <strong id="resultCount">0 pros found</strong>
+          <span>Showing verified TrustFix profiles</span>
+        </div>
+        <div id="results" class="results"></div>
+      </section>
 
-/* Score section bars */
-let scoreAnimated = false;
-const sfTargets = [{ id:'sf-1', pct:100 }, { id:'sf-2', pct:92 }, { id:'sf-3', pct:100 }, { id:'sf-4', pct:83 }];
-const obsScore = new IntersectionObserver(entries => entries.forEach(e => {
-  if (e.isIntersecting && !scoreAnimated) {
-    scoreAnimated = true;
-    sfTargets.forEach(({ id, pct }, i) => setTimeout(() => {
-      const el = document.getElementById(id);
-      if (el) el.style.width = pct + '%';
-    }, i * 120));
-    let count = 0, target = 97;
-    const sc = document.getElementById('score-count');
-    const step = () => {
-      count += Math.ceil((target - count) / 7);
-      if (sc) sc.textContent = count >= target ? target : count;
-      if (count < target) requestAnimationFrame(step);
-    };
-    setTimeout(step, 200);
-  }
-}), { threshold: 0.3 });
-const scoreCard = document.querySelector('.score-card-demo');
-if (scoreCard) obsScore.observe(scoreCard);
+      <aside class="card side">
+        <h3 style="margin:0 0 10px">Why this feels better than a generic listing</h3>
+        <p class="meta"><span class="status-dot good"></span>Trust score is based on job outcomes, not only reviews.</p>
+        <p class="meta"><span class="status-dot good"></span>On-time rates and dispute events are visible before booking.</p>
+        <p class="meta"><span class="status-dot warn"></span>Repeat dispute policy can suspend low performers.</p>
+        <hr style="border:none;border-top:1px solid #e2e8f0;margin:12px 0"/>
+        <p class="meta" style="margin:0 0 6px">Need a deeper look? Open any contractor profile for timeline and score history.</p>
+        <a class="btn-primary" href="contractor.html?id=1" style="width:100%">Open Sample Profile</a>
+      </aside>
+    </div>
 
-/* Stat counters */
-const obsStats = new IntersectionObserver(entries => entries.forEach(e => {
-  if (e.isIntersecting) {
-    const target = parseInt(e.target.dataset.target);
-    const span = e.target.querySelector('span');
-    if (!span) return;
-    let c = 0;
-    const step = () => {
-      c += Math.ceil((target - c) / 8);
-      span.textContent = c >= target ? target : c;
-      if (c < target) requestAnimationFrame(step);
-    };
-    step();
-    obsStats.unobserve(e.target);
-  }
-}), { threshold: 0.5 });
-document.querySelectorAll('[data-target]').forEach(el => obsStats.observe(el));
+    <section class="card" style="margin:16px 0 24px;padding:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap">
+      <div>
+        <strong>Want priority access when your city launches?</strong>
+        <p class="meta" style="margin:4px 0 0">Join the waitlist after you explore contractors.</p>
+      </div>
+      <a class="btn-ghost" href="waitlist.html">Join Waitlist</a>
+    </section>
+  </main>
 
-/* CTA progress bar */
-const obsCtaProg = new IntersectionObserver(entries => entries.forEach(e => {
-  if (e.isIntersecting) {
-    const fill = document.getElementById('cta-fill');
-    if (fill) fill.style.width = '49%';
-    obsCtaProg.unobserve(e.target);
-  }
-}), { threshold: 0.3 });
-const ctaSection = document.querySelector('.cta-section');
-if (ctaSection) obsCtaProg.observe(ctaSection);
+  <footer class="tf-footer">Flow: Search → Profile → Waitlist → Roadmap → Back to Search.</footer>
 
-/* Nav scroll */
-window.addEventListener('scroll', () => {
-  const nav = document.querySelector('.nav');
-  if (window.scrollY > 40) nav.style.background = 'rgba(248,247,244,0.98)';
-  else nav.style.background = 'rgba(248,247,244,0.92)';
-});
+  <script src="src/data.js"></script>
+  <script src="src/scoring.js"></script>
+  <script>
+    const { contractors, loadEvents } = window.TrustFixData;
+    const { calcScore, scoreLabel, scoreClass } = window.TrustFixScoring;
 
-/* CTA form */
-function handleSubmit(e) {
-  e.preventDefault();
-  window.location.href = 'waitlist.html';
-}
-</script>
+    const iconByTrade = { plumbing: '🔧', hvac: '❄️', mitigation: '🌊', general: '🛠️' };
+    const events = loadEvents();
+
+    const enriched = contractors.map((c) => {
+      const mine = events.filter((e) => e.contractorId === c.id);
+      const score = calcScore(mine);
+      const completed = mine.filter((e) => e.type === 'completed_on_time').length;
+      const disputes = mine.filter((e) => e.type === 'dispute').length;
+      const onTime = mine.length ? Math.round((completed / mine.length) * 100) : 0;
+      return { ...c, score, completed, disputes, onTime };
+    });
+
+    const qEl = document.getElementById('q');
+    const locEl = document.getElementById('location');
+    const sortEl = document.getElementById('sort');
+    const resultsEl = document.getElementById('results');
+    const countEl = document.getElementById('resultCount');
+    const chips = Array.from(document.querySelectorAll('.filter-chip'));
+
+    let tradeFilter = 'all';
+
+    function card(pro) {
+      return `
+      <article class="card result-card float-up">
+        <div class="avatar">${iconByTrade[pro.trade] || '🛠️'}</div>
+        <div>
+          <strong>${pro.name}</strong>
+          <div class="meta">${(locEl.value || 'Your area')} · ${pro.trade.toUpperCase()} · ETA ~${pro.etaMin} min</div>
+          <div class="highlights">
+            <span class="score-pill ${scoreClass(pro.score)}">${pro.score} · ${scoreLabel(pro.score)}</span>
+            <span class="badge" style="background:#f1f5f9;color:#334155">${pro.onTime}% on-time</span>
+            <span class="badge" style="background:${pro.disputes ? '#fee2e2' : '#dcfce7'};color:${pro.disputes ? '#991b1b' : '#166534'}">${pro.disputes} disputes</span>
+          </div>
+        </div>
+        <a class="btn-primary" href="contractor.html?id=${pro.id}">View & Book</a>
+      </article>`;
+    }
+
+    function render() {
+      const q = qEl.value.trim().toLowerCase();
+      let filtered = enriched.filter((pro) => {
+        const matchesQ = !q || pro.name.toLowerCase().includes(q) || pro.trade.toLowerCase().includes(q);
+        const matchesTrade = tradeFilter === 'all' || pro.trade === tradeFilter;
+        return matchesQ && matchesTrade;
+      });
+
+      if (sortEl.value === 'eta') filtered.sort((a, b) => a.etaMin - b.etaMin);
+      else if (sortEl.value === 'jobs') filtered.sort((a, b) => a.activeJobs - b.activeJobs);
+      else filtered.sort((a, b) => b.score - a.score);
+
+      countEl.textContent = `${filtered.length} pro${filtered.length === 1 ? '' : 's'} found`;
+      resultsEl.innerHTML = filtered.length ? filtered.map(card).join('') : '<div class="card empty">No matches yet. Try another keyword or service filter.</div>';
+    }
+
+    qEl.addEventListener('input', render);
+    locEl.addEventListener('input', render);
+    sortEl.addEventListener('change', render);
+
+    chips.forEach((chip) => {
+      chip.addEventListener('click', () => {
+        chips.forEach((c) => c.classList.remove('active'));
+        chip.classList.add('active');
+        tradeFilter = chip.dataset.trade;
+        render();
+      });
+    });
+
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      qEl.value = '';
+      locEl.value = 'Springfield';
+      sortEl.value = 'score';
+      tradeFilter = 'all';
+      chips.forEach((c) => c.classList.toggle('active', c.dataset.trade === 'all'));
+      render();
+    });
+
+    render();
+  </script>
 </body>
 </html>
