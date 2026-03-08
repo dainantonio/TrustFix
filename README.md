@@ -29,3 +29,15 @@ This keeps a clear frontend while preserving backend-ready seams:
 - Run `evaluateAutonomy` server-side on scheduler/queue
 - Add automated tests for worker policy outcomes and contract behaviors
 - Add outbound notifier adapters (SMS/email)
+
+## GitHub Pages deployment (so latest frontend appears)
+If the live site looks stale, use this checklist:
+1. Ensure Pages is enabled for the repository.
+2. Ensure the default branch is `main` (or update workflow trigger branch).
+3. Wait for the **Deploy static site to GitHub Pages** action to complete.
+4. Hard refresh browser cache (`Cmd/Ctrl+Shift+R`) because script URLs can be cached.
+
+This repo now includes:
+- `.github/workflows/deploy-pages.yml` for automatic deployment on pushes to `main`
+- `.nojekyll` so static assets are served as-is
+- versioned script URLs in `index.html` to reduce stale cache issues
