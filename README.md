@@ -2,35 +2,47 @@
 
 TrustFix is a local-first home services marketplace designed to beat legacy directories with AI-powered reliability.
 
-## Phase 2 Implemented: Trust Score Engine (Data Layer)
-The prototype now includes a working reliability data layer that learns from contractor outcomes instead of static hardcoded scores.
+## Phase 3 Implemented: LLM Intake Parsing + Smart Routing Rules
+This phase adds the intelligence layer that turns intake into structured reasoning and rule-driven routing.
 
-### ReliabilityEvent Store
-Events are persisted in `localStorage` (designed to move to DB later) using this structure:
-- `contractorId`
-- `jobId`
-- `type`: `completed_on_time | late | dispute | cancelled`
-- `timestamp`
-- `rating`
+### Structured Extraction Layer
+Free-text homeowner descriptions are parsed into structured JSON:
 
-### Live Scoring Formula
-Each contractor score is recalculated in real time from event history:
+```json
+{
+  "trade": "plumbing",
+  "severity": "moderate",
+  "urgency": "same-day",
+  "summary": "Shutoff valve leak, 48hrs ongoing",
+  "suggestedActions": ["Inspect shutoff valve", "Check water pressure", "Assess pipe condition"],
+  "flags": ["potential_water_damage"]
+}
+```
 
-`baseScore × recencyWeight + onTimeRate × 40 + completionVolume × 10 − disputePenalty × 15`
+### LLM + Fallback Strategy
+- `llmParseIntake` calls an LLM endpoint when `window.TRUSTFIX_OPENAI_API_KEY` is available.
+- If unavailable/failing, the system gracefully falls back to a keyword parser.
+- Agent log includes a warning when fallback is used.
 
-### What the UI now demonstrates
-1. **Real-time re-ranking** of matched contractors based on fresh score calculations.
-2. **Agent explanation log** for score changes (before/after and reliability context).
-3. **Score history sparkline** (last 10 score updates) on contractor cards.
-4. **Manual event simulation controls** so teams can test how reliability changes routing.
+### Declarative Routing Rules Engine
+Rules are encoded as `when + apply + description` objects and applied in sequence:
+1. `severity=critical` → only contractors with score `>= 95` and ETA `<= 2hrs`
+2. `urgency=emergency` → top 3 are selected for simultaneous alerting behavior
+3. `flags` includes `potential_water_damage` → mitigation specialists are added to pool
+4. Global capacity guardrail: exclude contractors with active jobs `> 2`
+
+### Explainability Layer
+Agent reasoning log shows full decision narrative, for example:
+- Parsed trade/severity/urgency
+- Which routing rules were applied
+- Which candidates were excluded
+- How many candidates were ranked
 
 ## Why this matters
-- Homeowners can trust recommendations because scoring is explainable and tied to outcomes.
-- Contractors are rewarded for consistent on-time, dispute-free work.
-- The agent now has a feedback loop and can learn from recent performance trends.
+TrustFix now behaves like an intake agent that understands real homeowner language and explains recommendations with transparent routing logic.
 
 ## Next Build Targets
-- Move ReliabilityEvent storage from localStorage to backend DB.
-- Ingest real booking lifecycle events automatically (not just simulated controls).
-- Add authenticated event write paths for homeowners, pros, and ops.
-- Add automated tests for scoring formula, ranking behavior, and event persistence.
+- Add provider abstraction to support OpenAI + Gemini from environment config.
+- Move LLM calls to backend to protect API keys.
+- Persist intake parse artifacts and routing decisions for auditability.
+- Add automated tests for parser fallback, rule application order, and emergency fan-out behavior.
