@@ -1,29 +1,50 @@
-const { contractors, categoryAverage, loadEvents, saveEvents, defaultJobs } = window.TrustFixData;
+const { contractors, categoryAverage, loadEvents, defaultJobs } = window.TrustFixData;
 const { withPreferenceBoost } = window.TrustFixScoring;
 const { fallbackParse, llmParseIntake } = window.TrustFixParsing;
 const { findBackup, routeByIntake } = window.TrustFixAutonomy;
+const { evaluateAutonomy } = window.TrustFixWorker;
+const {
+  listNotifications,
+  putNotifications,
+  getMemory,
+  putMemory,
+  getSuspensions,
+  putSuspensions,
+  setNotificationStatus,
+} = window.TrustFixApi;
 
 function App() {
-  const [events, setEvents] = React.useState(loadEvents);
-  const [suspended, setSuspended] = React.useState({});
+  const [events] = React.useState(loadEvents);
+  const [suspended, setSuspended] = React.useState(getSuspensions);
   const [description, setDescription] = React.useState('Marcus HVAC is late and AC still not cooling.');
   const [parsed, setParsed] = React.useState(null);
   const [matches, setMatches] = React.useState([]);
   const [agentLog, setAgentLog] = React.useState([]);
-  const [notifications, setNotifications] = React.useState([]);
-  const [preferenceMemory, setPreferenceMemory] = React.useState({ homeownerId: 'dain', acceptedByContractor: { 1: 3 } });
+  const [notifications, setNotifications] = React.useState(listNotifications);
+  const [preferenceMemory, setPreferenceMemory] = React.useState(getMemory);
   const [jobs, setJobs] = React.useState(defaultJobs);
 
   const contractorStats = React.useMemo(() => {
-    return withPreferenceBoost(contractors, events, preferenceMemory.acceptedByContractor);
+    return withPreferenceBoost(contractors, events, preferenceMemory.acceptedByContractor || {});
   }, [events, preferenceMemory]);
 
   function contractorById(id) {
     return contractorStats.find((c) => c.id === id) || contractors.find((c) => c.id === id);
   }
 
-  function enqueueNotification(n) {
-    setNotifications((prev) => prev.find((x) => x.key === n.key) ? prev : [{ ...n, id: crypto.randomUUID(), status: 'open' }, ...prev].slice(0, 20));
+  function syncNotifications(next) {
+    setNotifications(next);
+    putNotifications(next);
+  }
+
+  function syncMemory(next) {
+    setPreferenceMemory(next);
+    putMemory(next);
+  }
+
+  function syncSuspensions(next) {
+    setSuspended(next);
+    putSuspensions(next);
   }
 
   function applyRouting(intake) {
@@ -46,21 +67,28 @@ function App() {
   }
 
   function handleNotificationAction(n, action) {
-    setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, status: action === 'dismiss' ? 'dismissed' : 'accepted' } : x));
-
     if (action === 'why') {
       setAgentLog((l) => [`Why: ${n.why}`, ...l].slice(0, 12));
       return;
     }
 
+    const status = action === 'dismiss' ? 'dismissed' : 'accepted';
+    const updated = setNotificationStatus(n.id, status);
+    setNotifications(updated);
+
     if (action === 'accept' && n.type === 'rematch' && n.jobId && n.backupId) {
       setJobs((prev) => prev.map((j) => j.id === n.jobId
         ? { ...j, contractorId: n.backupId, etaDueAt: Date.now() + (contractorById(n.backupId).etaMin * 60 * 1000), flags: { ...j.flags, rematched: true } }
         : j));
-      setPreferenceMemory((m) => ({
-        ...m,
-        acceptedByContractor: { ...m.acceptedByContractor, [n.backupId]: (m.acceptedByContractor[n.backupId] || 0) + 1 },
-      }));
+
+      const nextMemory = {
+        ...preferenceMemory,
+        acceptedByContractor: {
+          ...(preferenceMemory.acceptedByContractor || {}),
+          [n.backupId]: ((preferenceMemory.acceptedByContractor || {})[n.backupId] || 0) + 1,
+        },
+      };
+      syncMemory(nextMemory);
       setAgentLog((l) => [`Accepted auto re-match to ${contractorById(n.backupId).name}. Preference memory updated.`, ...l].slice(0, 12));
     }
   }
@@ -69,115 +97,35 @@ function App() {
 
   React.useEffect(() => {
     const timer = setInterval(() => {
-      const now = Date.now();
-
-      setJobs((prevJobs) => {
-        const nextJobs = prevJobs.map((job) => {
-          if (job.status !== 'In Progress') return job;
-          const lateBy = Math.floor((now - job.etaDueAt) / 60000);
-          let flags = { ...job.flags };
-
-          if (lateBy > 15 && !flags.late15) {
-            enqueueNotification({
-              key: `${job.id}-late15`,
-              type: 'watchdog',
-              jobId: job.id,
-              message: `${contractorById(job.contractorId).name} exceeded ETA by ${lateBy} min. Re-match option available.`,
-              why: 'ETA watchdog detected >15 minutes late on an in-progress job.',
-            });
-            setAgentLog((l) => [`ETA watchdog alert on ${job.id}: ${lateBy} minutes late.`, ...l].slice(0, 12));
-            flags.late15 = true;
-          }
-
-          if (lateBy > 45 && !flags.late45) {
-            const backup = findBackup(contractorStats, job, suspended);
-            if (backup) {
-              enqueueNotification({
-                key: `${job.id}-late45`,
-                type: 'rematch',
-                jobId: job.id,
-                backupId: backup.id,
-                message: `${contractorById(job.contractorId).name} has exceeded ETA by ${lateBy} minutes. Backup found: ${backup.name} (score ${backup.score}, ETA ${backup.etaMin}min). Accept re-match?`,
-                why: 'Autonomous action threshold reached (>45 min late).',
-              });
-              setAgentLog((l) => [`Auto-action: initiated re-match proposal for ${job.id} after ${lateBy} min delay.`, ...l].slice(0, 12));
-            }
-            flags.late45 = true;
-          }
-
-          const durationHrs = (now - job.startedAt) / (1000 * 60 * 60);
-          if (job.title.toLowerCase().includes('simple faucet fix') && durationHrs > 4 && !flags.durationAlert) {
-            enqueueNotification({
-              key: `${job.id}-duration`,
-              type: 'anomaly',
-              jobId: job.id,
-              message: `${job.title} has been in progress for ${durationHrs.toFixed(1)} hours. Review recommended.`,
-              why: 'Unusual duration anomaly detected for a simple repair class.',
-            });
-            flags.durationAlert = true;
-          }
-
-          const avg = categoryAverage[job.trade] || 200;
-          if (job.quotedPrice > avg * 1.3 && !flags.priceFlag) {
-            enqueueNotification({
-              key: `${job.id}-price`,
-              type: 'anomaly',
-              jobId: job.id,
-              message: `Quoted price $${job.quotedPrice} is >30% above ${job.trade} average ($${avg}).`,
-              why: 'Price variance policy threshold exceeded.',
-            });
-            flags.priceFlag = true;
-          }
-
-          return { ...job, flags };
-        });
-
-        const sixtyDays = 60 * 24 * 60 * 60 * 1000;
-        const plumbingAtAddress = nextJobs.filter((j) => j.address === '14 Maple St' && j.trade === 'plumbing' && now - j.createdAt <= sixtyDays).length;
-        if (plumbingAtAddress >= 2) {
-          enqueueNotification({
-            key: 'address-pattern-14-maple',
-            type: 'memory',
-            message: 'This address has had 2 plumbing jobs in 60 days — suggest preventive inspection.',
-            why: 'Job pattern awareness rule detected repeat service at same address.',
-          });
-        }
-
-        return nextJobs;
+      const result = evaluateAutonomy({
+        jobs,
+        events,
+        notifications,
+        suspended,
+        contractorStats,
+        categoryAverage,
+        findBackup,
+        contractorById,
+        now: Date.now(),
       });
 
-      const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
-      const disputesByContractor = {};
-      events.forEach((e) => {
-        if (e.type === 'dispute' && e.timestamp >= thirtyDaysAgo) {
-          disputesByContractor[e.contractorId] = (disputesByContractor[e.contractorId] || 0) + 1;
-        }
-      });
-
-      Object.entries(disputesByContractor).forEach(([id, count]) => {
-        const cid = Number(id);
-        if (count >= 2 && !suspended[cid]) {
-          setSuspended((s) => ({ ...s, [cid]: true }));
-          const c = contractorById(cid);
-          enqueueNotification({
-            key: `suspend-${cid}`,
-            type: 'anomaly',
-            message: `${c.name} suspended from new matches after ${count} disputes in 30 days.`,
-            why: 'Repeat dispute detection policy triggered.',
-          });
-        }
-      });
+      setJobs(result.nextJobs);
+      syncNotifications(result.nextNotifications);
+      syncSuspensions(result.nextSuspended);
+      if (result.logLines.length) {
+        setAgentLog((l) => [...result.logLines, ...l].slice(0, 12));
+      }
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [events, suspended, contractorStats]);
+  }, [jobs, events, notifications, suspended, contractorStats]);
 
   return (
     <div>
       <header className="hero-gradient text-white">
         <div className="mx-auto max-w-6xl px-6 py-14">
-          <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">Phase 4: Proactive Agent + Autonomous Actions</p>
-          <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">Codebase refactored into modules + autonomy kept advancing.</h1>
+          <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">Phase 4+: Backend-ready autonomy contract</p>
+          <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">Autonomy extracted into API contract + worker module.</h1>
         </div>
       </header>
 
@@ -190,11 +138,12 @@ function App() {
         </section>
 
         <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-          <h2 className="text-xl font-extrabold">Homeowner notification center</h2>
+          <h2 className="text-xl font-extrabold">Notification center (persisted contract)</h2>
           <div className="mt-4 space-y-3">
             {notifications.map((n) => (
               <div key={n.id} className="rounded-lg border border-slate-200 p-3">
                 <p className="text-sm">{n.message}</p>
+                <p className="mt-1 text-xs text-slate-500">Status: {n.status || 'open'}</p>
                 <div className="mt-2 flex gap-2">
                   <button onClick={() => handleNotificationAction(n, 'accept')} className="rounded bg-emerald-600 px-2 py-1 text-xs font-bold text-white">Accept</button>
                   <button onClick={() => handleNotificationAction(n, 'dismiss')} className="rounded bg-slate-600 px-2 py-1 text-xs font-bold text-white">Dismiss</button>
@@ -202,6 +151,7 @@ function App() {
                 </div>
               </div>
             ))}
+            {notifications.length === 0 && <p className="text-sm text-slate-500">No notifications yet.</p>}
           </div>
         </section>
       </main>

@@ -2,30 +2,42 @@
 
 TrustFix is a local-first home services marketplace designed to beat legacy directories with AI-powered reliability.
 
-## Phase 4 status
-Phase 4 autonomy is implemented with proactive watchdog checks, anomaly detection, notification actions, and preference memory.
+## Phase 4+ status
+Phase 4 autonomy is still active, and this iteration adds a backend-ready service contract split so we can move from browser-only orchestration to worker/API architecture.
 
-## Refactor: code is now split into manageable files
-To keep implementation scalable, the single-file prototype was split into modules:
+## Architecture (modular)
+- `index.html` — entrypoint + module wiring
+- `src/data.js` — contractors, reliability event seed/store, default jobs
+- `src/scoring.js` — trust scoring + preference boost
+- `src/parsing.js` — LLM parsing + fallback parsing
+- `src/autonomy.js` — routing + backup candidate selection
+- `src/api.js` — API contract shim for persistence (`notifications`, `memory`, `suspensions`)
+- `src/worker.js` — autonomy worker evaluator (`evaluateAutonomy`) with policy checks
+- `src/App.jsx` — UI + orchestration that now calls API/worker modules
 
-- `index.html` — entrypoint + script loading
-- `src/data.js` — contractors, seeded reliability events, localStorage helpers, default job fixtures
-- `src/scoring.js` — trust scoring formula + preference boost wrapper
-- `src/parsing.js` — LLM intake parser + fallback parser
-- `src/autonomy.js` — smart routing + backup contractor selection
-- `src/App.jsx` — UI composition, state orchestration, watchdog loop, notification actions
+## What changed in this iteration
+1. **API contract layer added**
+   - Notification list/update
+   - Preference memory get/update
+   - Suspension map get/update
+2. **Autonomy worker extracted**
+   - ETA watchdog thresholds
+   - Price variance checks
+   - Long duration checks
+   - Address pattern memory alerts
+   - Repeat dispute suspension
+3. **UI wired to contract**
+   - Notification actions now write through contract methods
+   - Memory/suspension state now persists via contract methods
 
-## Autonomy features live now
-- ETA watchdog (`>15m` alert, `>45m` auto re-match proposal)
-- Price variance flag (`>30%` over category average)
-- Repeat dispute suspension policy (2+ disputes / 30 days)
-- Unusual job duration flag for simple jobs
-- In-app homeowner notification center with `Accept`, `Dismiss`, `Ask agent why`
-- Preference memory boosts for repeatedly accepted contractors
-- Address-level pattern alerting for preventive suggestions
+## Why this is important
+This creates a clean handoff point to a real backend:
+- swap `src/api.js` localStorage methods with HTTP calls,
+- move `src/worker.js` execution to a backend job worker,
+- keep the UI contract mostly unchanged.
 
 ## Next implementation targets
-- Move watchdog/anomaly logic from client loop to backend worker
-- Persist notifications/memory/policy actions to a database
-- Add outbound messaging adapters (SMS/email)
-- Add tests for routing, watchdog thresholds, and suspension rules
+- Replace `src/api.js` with real HTTP client + backend endpoints
+- Run `evaluateAutonomy` server-side on a scheduler/queue
+- Add automated tests for worker policy outcomes and contract behaviors
+- Add outbound notifier adapters (SMS/email)
