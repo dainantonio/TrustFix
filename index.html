@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrustFix | Phase 3 Intelligence Layer</title>
+  <title>TrustFix | Phase 4 Autonomy Layer</title>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -27,13 +27,14 @@
     const STORAGE_KEY = 'trustfix.reliabilityEvents.v1';
 
     const contractors = [
-      { id: 1, name: 'Maya Plumbing Co.', trade: 'plumbing', etaMin: 32, local: 'Northside', activeJobs: 1, mitigation: false },
-      { id: 2, name: 'Riverside Electric', trade: 'electrical', etaMin: 41, local: 'Downtown', activeJobs: 2, mitigation: false },
-      { id: 3, name: 'Evergreen Home Repair', trade: 'general', etaMin: 27, local: 'East End', activeJobs: 3, mitigation: true },
-      { id: 4, name: 'Springfield Rooter', trade: 'plumbing', etaMin: 84, local: 'Westfield', activeJobs: 1, mitigation: true },
-      { id: 5, name: 'Solid Spark Systems', trade: 'electrical', etaMin: 35, local: 'South Park', activeJobs: 0, mitigation: false },
-      { id: 6, name: 'Rapid Dry Mitigation', trade: 'mitigation', etaMin: 55, local: 'Metro Core', activeJobs: 1, mitigation: true },
+      { id: 1, name: 'Maya Plumbing Co.', trade: 'plumbing', etaMin: 32, activeJobs: 1 },
+      { id: 2, name: 'Marcus HVAC', trade: 'hvac', etaMin: 28, activeJobs: 2 },
+      { id: 3, name: 'CoolAir Pro', trade: 'hvac', etaMin: 28, activeJobs: 1 },
+      { id: 4, name: 'Springfield Rooter', trade: 'plumbing', etaMin: 24, activeJobs: 1 },
+      { id: 5, name: 'Rapid Dry Mitigation', trade: 'mitigation', etaMin: 35, activeJobs: 1 },
     ];
+
+    const categoryAverage = { plumbing: 220, hvac: 340, mitigation: 450, general: 180 };
 
     function seedEvents() {
       const now = Date.now();
@@ -41,12 +42,10 @@
       return [
         { contractorId: 1, jobId: 'j-100', type: 'completed_on_time', timestamp: now - day * 2, rating: 5 },
         { contractorId: 1, jobId: 'j-101', type: 'completed_on_time', timestamp: now - day * 1, rating: 5 },
-        { contractorId: 2, jobId: 'j-200', type: 'late', timestamp: now - day * 5, rating: 3 },
-        { contractorId: 2, jobId: 'j-201', type: 'completed_on_time', timestamp: now - day * 1, rating: 4 },
-        { contractorId: 3, jobId: 'j-300', type: 'cancelled', timestamp: now - day * 3, rating: 2 },
-        { contractorId: 4, jobId: 'j-400', type: 'completed_on_time', timestamp: now - day * 7, rating: 5 },
-        { contractorId: 5, jobId: 'j-500', type: 'dispute', timestamp: now - day * 10, rating: 1 },
-        { contractorId: 6, jobId: 'j-600', type: 'completed_on_time', timestamp: now - day * 1, rating: 5 },
+        { contractorId: 2, jobId: 'j-200', type: 'dispute', timestamp: now - day * 10, rating: 2 },
+        { contractorId: 2, jobId: 'j-201', type: 'dispute', timestamp: now - day * 5, rating: 1 },
+        { contractorId: 3, jobId: 'j-300', type: 'completed_on_time', timestamp: now - day * 3, rating: 5 },
+        { contractorId: 4, jobId: 'j-400', type: 'completed_on_time', timestamp: now - day * 6, rating: 5 },
       ];
     }
 
@@ -64,233 +63,320 @@
       }
     }
 
-    function saveEvents(events) {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
-    }
-
     function calcScore(events) {
       if (!events.length) return 60;
       const now = Date.now();
       const sorted = [...events].sort((a, b) => a.timestamp - b.timestamp);
-      const latest = sorted[sorted.length - 1];
-      const ageDays = (now - latest.timestamp) / (1000 * 60 * 60 * 24);
-
+      const ageDays = (now - sorted[sorted.length - 1].timestamp) / (1000 * 60 * 60 * 24);
       const baseScore = 50;
       const recencyWeight = Math.max(0.7, 1.25 - Math.min(ageDays / 60, 0.55));
-      const completedOnTime = sorted.filter((e) => e.type === 'completed_on_time').length;
+      const onTime = sorted.filter((e) => e.type === 'completed_on_time').length;
       const late = sorted.filter((e) => e.type === 'late').length;
       const disputes = sorted.filter((e) => e.type === 'dispute').length;
       const cancelled = sorted.filter((e) => e.type === 'cancelled').length;
-      const totalClosed = completedOnTime + late + disputes + cancelled;
-      const onTimeRate = totalClosed ? completedOnTime / totalClosed : 0;
-      const completionVolume = Math.min(totalClosed / 15, 1);
+      const total = onTime + late + disputes + cancelled;
+      const onTimeRate = total ? onTime / total : 0;
+      const completionVolume = Math.min(total / 15, 1);
       const disputePenalty = disputes + cancelled * 0.6;
-
       const score = baseScore * recencyWeight + onTimeRate * 40 + completionVolume * 10 - disputePenalty * 15;
       return Math.max(0, Math.min(100, Math.round(score)));
     }
 
     function fallbackParse(description) {
       const t = description.toLowerCase();
-      const plumbing = /(pipe|leak|valve|drain|water)/.test(t);
-      const electrical = /(power|breaker|outlet|light|spark)/.test(t);
-      const critical = /(flood|smoke|fire|burst)/.test(t);
-      const emergency = /(now|immediately|urgent|asap)/.test(t) || critical;
+      const trade = /(hvac|ac|cooling|furnace)/.test(t) ? 'hvac' : /(pipe|leak|valve|drain|water)/.test(t) ? 'plumbing' : 'general';
+      const severity = /(critical|flood|burst|fire)/.test(t) ? 'critical' : 'moderate';
+      const urgency = /(now|asap|urgent|immediately)/.test(t) ? 'emergency' : 'same-day';
       const flags = [];
       if (/(water|leak|flood|wet)/.test(t)) flags.push('potential_water_damage');
-
-      return {
-        trade: plumbing ? 'plumbing' : electrical ? 'electrical' : 'general',
-        severity: critical ? 'critical' : 'moderate',
-        urgency: emergency ? 'emergency' : 'same-day',
-        summary: description.slice(0, 120),
-        suggestedActions: plumbing
-          ? ['Inspect shutoff valve', 'Check water pressure', 'Assess pipe condition']
-          : electrical
-          ? ['Inspect panel', 'Check breaker loads', 'Test outlet continuity']
-          : ['Inspect issue site', 'Document damage', 'Create repair scope'],
-        flags,
-      };
+      return { trade, severity, urgency, summary: description.slice(0, 120), suggestedActions: ['Inspect site', 'Verify safety', 'Scope repair'], flags };
     }
 
     async function llmParseIntake(description) {
       const apiKey = window.TRUSTFIX_OPENAI_API_KEY;
-      if (!apiKey) throw new Error('LLM unavailable: missing API key');
-
-      const prompt = `Extract structured home-service intake JSON only. Description: ${description}`;
+      if (!apiKey) throw new Error('No API key');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${apiKey}`,
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
         body: JSON.stringify({
           model: 'gpt-4o-mini',
           temperature: 0,
           response_format: { type: 'json_object' },
           messages: [
-            {
-              role: 'system',
-              content: 'Return JSON with keys: trade, severity, urgency, summary, suggestedActions, flags.',
-            },
-            { role: 'user', content: prompt },
+            { role: 'system', content: 'Return JSON with trade,severity,urgency,summary,suggestedActions,flags' },
+            { role: 'user', content: description },
           ],
         }),
       });
-
-      if (!response.ok) throw new Error(`LLM request failed: ${response.status}`);
+      if (!response.ok) throw new Error(`LLM failed ${response.status}`);
       const data = await response.json();
-      const parsed = JSON.parse(data.choices?.[0]?.message?.content || '{}');
-      if (!parsed.trade || !parsed.urgency) throw new Error('LLM JSON missing required fields');
-      return parsed;
+      return JSON.parse(data.choices?.[0]?.message?.content || '{}');
     }
-
-    const ROUTING_RULES = [
-      {
-        id: 'critical_score_eta',
-        when: (i) => i.severity === 'critical',
-        apply: (list) => list.filter((c) => c.score >= 95 && c.etaMin <= 120),
-        description: 'severity=critical → score ≥ 95 and ETA ≤ 2hrs',
-      },
-      {
-        id: 'exclude_overloaded',
-        when: () => true,
-        apply: (list) => list.filter((c) => c.activeJobs <= 2),
-        description: 'exclude contractors with active jobs > 2',
-      },
-      {
-        id: 'water_damage_mitigation',
-        when: (i) => (i.flags || []).includes('potential_water_damage'),
-        apply: (list, all) => {
-          const specialists = all.filter((c) => c.mitigation);
-          const ids = new Set(list.map((c) => c.id));
-          specialists.forEach((s) => ids.add(s.id));
-          return all.filter((c) => ids.has(c.id));
-        },
-        description: 'flag potential_water_damage → add mitigation specialist pool',
-      },
-    ];
 
     function App() {
       const [events, setEvents] = React.useState(loadEvents);
-      const [description, setDescription] = React.useState('My shutoff valve has been weeping for 48 hours and wall is damp.');
-      const [zip, setZip] = React.useState('01103');
+      const [suspended, setSuspended] = React.useState({});
+      const [description, setDescription] = React.useState('Marcus HVAC is late and AC still not cooling.');
       const [parsed, setParsed] = React.useState(null);
-      const [agentLog, setAgentLog] = React.useState([]);
-      const [loading, setLoading] = React.useState(false);
-
-      const contractorStats = React.useMemo(() => {
-        return contractors.map((c) => {
-          const mine = events.filter((e) => e.contractorId === c.id);
-          return { ...c, score: calcScore(mine) };
-        });
-      }, [events]);
-
       const [matches, setMatches] = React.useState([]);
+      const [agentLog, setAgentLog] = React.useState([]);
+      const [notifications, setNotifications] = React.useState([]);
+      const [preferenceMemory, setPreferenceMemory] = React.useState({ homeownerId: 'dain', acceptedByContractor: { 1: 3 } });
+      const [jobs, setJobs] = React.useState([
+        {
+          id: 'job-live-1', homeownerId: 'dain', address: '14 Maple St', title: 'AC not cooling', trade: 'hvac',
+          contractorId: 2, status: 'In Progress', quotedPrice: 495, createdAt: Date.now() - 2 * 60 * 60 * 1000,
+          startedAt: Date.now() - 90 * 60 * 1000, etaDueAt: Date.now() - 47 * 60 * 1000,
+          flags: {},
+        },
+        {
+          id: 'job-live-2', homeownerId: 'dain', address: '14 Maple St', title: 'simple faucet fix', trade: 'plumbing',
+          contractorId: 1, status: 'In Progress', quotedPrice: 180, createdAt: Date.now() - 5 * 60 * 60 * 1000,
+          startedAt: Date.now() - 4.4 * 60 * 60 * 1000, etaDueAt: Date.now() - 20 * 60 * 1000,
+          flags: {},
+        },
+      ]);
+
+      const contractorStats = React.useMemo(() => contractors.map((c) => {
+        const mine = events.filter((e) => e.contractorId === c.id);
+        const score = calcScore(mine);
+        const preferenceBoost = preferenceMemory.acceptedByContractor[c.id] ? 2 : 0;
+        return { ...c, score: Math.min(100, score + preferenceBoost) };
+      }), [events, preferenceMemory]);
+
+      function enqueueNotification(n) {
+        setNotifications((prev) => prev.find((x) => x.key === n.key) ? prev : [{ ...n, id: crypto.randomUUID(), status: 'open' }, ...prev].slice(0, 20));
+      }
+
+      function contractorById(id) {
+        return contractorStats.find((c) => c.id === id) || contractors.find((c) => c.id === id);
+      }
+
+      function findBackup(job) {
+        return contractorStats
+          .filter((c) => c.trade === job.trade && c.id !== job.contractorId && !suspended[c.id])
+          .sort((a, b) => (b.score - a.score) || (a.etaMin - b.etaMin))[0];
+      }
+
+      function applyRouting(intake) {
+        let pool = contractorStats.filter((c) => (c.trade === intake.trade || (intake.flags || []).includes('potential_water_damage') && c.trade === 'mitigation'));
+        if (intake.severity === 'critical') pool = pool.filter((c) => c.score >= 95 && c.etaMin <= 120);
+        if (intake.urgency === 'emergency') pool = pool.slice(0, 3);
+        pool = pool.filter((c) => c.activeJobs <= 2 && !suspended[c.id]);
+        const ranked = pool.sort((a, b) => (b.score - a.score) || (a.etaMin - b.etaMin));
+        setMatches(ranked);
+        setAgentLog((l) => [`Parsed: ${intake.trade}, ${intake.severity} severity. Applying ${intake.urgency} routing rules. Excluding contractors with active jobs > 2. Ranked ${ranked.length} candidates.`, ...l].slice(0, 12));
+      }
 
       async function runIntake() {
-        setLoading(true);
         try {
-          let intake;
-          try {
-            intake = await llmParseIntake(description);
-            setAgentLog((l) => [`LLM parse succeeded for ZIP ${zip}.`, ...l].slice(0, 10));
-          } catch (err) {
-            intake = fallbackParse(description);
-            setAgentLog((l) => [`⚠️ LLM unavailable, using fallback parser: ${err.message}`, ...l].slice(0, 10));
-          }
-
+          const intake = await llmParseIntake(description);
           setParsed(intake);
-
-          const tradePool = contractorStats.filter((c) => c.trade === intake.trade || c.trade === 'mitigation');
-          let routed = tradePool;
-          const applied = [];
-
-          ROUTING_RULES.forEach((rule) => {
-            if (rule.when(intake)) {
-              routed = rule.apply(routed, contractorStats);
-              applied.push(rule.description);
-            }
-          });
-
-          routed = [...routed].sort((a, b) => (b.score - a.score) || (a.etaMin - b.etaMin));
-          setMatches(routed.slice(0, intake.urgency === 'emergency' ? 3 : 4));
-
-          const reasoning = `Parsed: ${intake.trade}, ${intake.severity} severity. Applying ${intake.urgency} routing rules. ${applied.join('; ')}. Ranked ${routed.length} candidates.`;
-          const emergencyNote = intake.urgency === 'emergency'
-            ? 'Emergency flow: bypassing waitlist and alerting top 3 simultaneously.'
-            : 'Standard flow: top candidates queued for homeowner review.';
-
-          setAgentLog((l) => [reasoning, emergencyNote, ...l].slice(0, 10));
-        } finally {
-          setLoading(false);
+          applyRouting(intake);
+        } catch (e) {
+          const intake = fallbackParse(description);
+          setParsed(intake);
+          setAgentLog((l) => [`⚠️ LLM unavailable, fallback parser used: ${e.message}`, ...l].slice(0, 12));
+          applyRouting(intake);
         }
       }
 
-      function addEvent(contractorId, type, rating = 5) {
-        const now = Date.now();
-        const next = [...events, { contractorId, jobId: `job-${contractorId}-${now}`, type, timestamp: now, rating }];
-        saveEvents(next);
-        setEvents(next);
+      function handleNotificationAction(n, action) {
+        setNotifications((prev) => prev.map((x) => x.id === n.id ? { ...x, status: action === 'dismiss' ? 'dismissed' : 'accepted' } : x));
+
+        if (action === 'why') {
+          setAgentLog((l) => [`Why: ${n.why}`, ...l].slice(0, 12));
+          return;
+        }
+
+        if (action === 'accept' && n.type === 'rematch' && n.jobId && n.backupId) {
+          setJobs((prev) => prev.map((j) => j.id === n.jobId
+            ? { ...j, contractorId: n.backupId, etaDueAt: Date.now() + (contractorById(n.backupId).etaMin * 60 * 1000), flags: { ...j.flags, rematched: true } }
+            : j));
+          setPreferenceMemory((m) => ({
+            ...m,
+            acceptedByContractor: { ...m.acceptedByContractor, [n.backupId]: (m.acceptedByContractor[n.backupId] || 0) + 1 },
+          }));
+          setAgentLog((l) => [`Accepted auto re-match to ${contractorById(n.backupId).name}. Preference memory updated.`, ...l].slice(0, 12));
+        }
       }
 
       React.useEffect(() => { runIntake(); }, []);
+
+      React.useEffect(() => {
+        const timer = setInterval(() => {
+          const now = Date.now();
+
+          setJobs((prevJobs) => {
+            const nextJobs = prevJobs.map((job) => {
+              if (job.status !== 'In Progress') return job;
+              const lateBy = Math.floor((now - job.etaDueAt) / 60000);
+              let flags = { ...job.flags };
+
+              if (lateBy > 15 && !flags.late15) {
+                enqueueNotification({
+                  key: `${job.id}-late15`,
+                  type: 'watchdog',
+                  jobId: job.id,
+                  message: `${contractorById(job.contractorId).name} exceeded ETA by ${lateBy} min. Re-match option available.`,
+                  why: 'ETA watchdog detected >15 minutes late on an in-progress job.',
+                });
+                setAgentLog((l) => [`ETA watchdog alert on ${job.id}: ${lateBy} minutes late.`, ...l].slice(0, 12));
+                flags.late15 = true;
+              }
+
+              if (lateBy > 45 && !flags.late45) {
+                const backup = findBackup(job);
+                if (backup) {
+                  enqueueNotification({
+                    key: `${job.id}-late45`,
+                    type: 'rematch',
+                    jobId: job.id,
+                    backupId: backup.id,
+                    message: `${contractorById(job.contractorId).name} has exceeded ETA by ${lateBy} minutes. Backup found: ${backup.name} (score ${backup.score}, ETA ${backup.etaMin}min). Accept re-match?`,
+                    why: 'Autonomous action threshold reached (>45 min late).',
+                  });
+                  setAgentLog((l) => [`Auto-action: initiated re-match proposal for ${job.id} after ${lateBy} min delay.`, ...l].slice(0, 12));
+                }
+                flags.late45 = true;
+              }
+
+              const durationHrs = (now - job.startedAt) / (1000 * 60 * 60);
+              if (job.title.toLowerCase().includes('simple faucet fix') && durationHrs > 4 && !flags.durationAlert) {
+                enqueueNotification({
+                  key: `${job.id}-duration`,
+                  type: 'anomaly',
+                  jobId: job.id,
+                  message: `${job.title} has been in progress for ${durationHrs.toFixed(1)} hours. Review recommended.`,
+                  why: 'Unusual duration anomaly detected for a simple repair class.',
+                });
+                setAgentLog((l) => [`Duration anomaly on ${job.id}: ${durationHrs.toFixed(1)}h in progress.`, ...l].slice(0, 12));
+                flags.durationAlert = true;
+              }
+
+              const avg = categoryAverage[job.trade] || 200;
+              if (job.quotedPrice > avg * 1.3 && !flags.priceFlag) {
+                enqueueNotification({
+                  key: `${job.id}-price`,
+                  type: 'anomaly',
+                  jobId: job.id,
+                  message: `Quoted price $${job.quotedPrice} is >30% above ${job.trade} average ($${avg}).`,
+                  why: 'Price variance policy threshold exceeded.',
+                });
+                setAgentLog((l) => [`Price variance flag on ${job.id}: $${job.quotedPrice} vs avg $${avg}.`, ...l].slice(0, 12));
+                flags.priceFlag = true;
+              }
+
+              return { ...job, flags };
+            });
+
+            const sixtyDays = 60 * 24 * 60 * 60 * 1000;
+            const plumbingAtAddress = nextJobs.filter((j) => j.address === '14 Maple St' && j.trade === 'plumbing' && now - j.createdAt <= sixtyDays).length;
+            if (plumbingAtAddress >= 2) {
+              enqueueNotification({
+                key: 'address-pattern-14-maple',
+                type: 'memory',
+                message: 'This address has had 2 plumbing jobs in 60 days — suggest preventive inspection.',
+                why: 'Job pattern awareness rule detected repeat service at same address.',
+              });
+            }
+
+            return nextJobs;
+          });
+
+          const thirtyDaysAgo = now - 30 * 24 * 60 * 60 * 1000;
+          const disputesByContractor = {};
+          events.forEach((e) => {
+            if (e.type === 'dispute' && e.timestamp >= thirtyDaysAgo) {
+              disputesByContractor[e.contractorId] = (disputesByContractor[e.contractorId] || 0) + 1;
+            }
+          });
+
+          Object.entries(disputesByContractor).forEach(([id, count]) => {
+            const cid = Number(id);
+            if (count >= 2 && !suspended[cid]) {
+              setSuspended((s) => ({ ...s, [cid]: true }));
+              const c = contractorById(cid);
+              enqueueNotification({
+                key: `suspend-${cid}`,
+                type: 'anomaly',
+                message: `${c.name} suspended from new matches after ${count} disputes in 30 days.`,
+                why: 'Repeat dispute detection policy triggered.',
+              });
+              setAgentLog((l) => [`Contractor suspended: ${c.name} (${count} disputes / 30 days).`, ...l].slice(0, 12));
+            }
+          });
+        }, 5000);
+
+        return () => clearInterval(timer);
+      }, [events, suspended, contractorStats]);
 
       return (
         <div>
           <header className="hero-gradient text-white">
             <div className="mx-auto max-w-6xl px-6 py-14">
-              <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">Phase 3: Intelligence Layer</p>
-              <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">LLM intake parsing + smart routing rules.</h1>
-              <p className="mt-4 max-w-3xl text-slate-200">TrustFix now reasons over natural language, applies declarative routing rules, and logs exactly why each contractor was ranked.</p>
+              <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">Phase 4: Proactive Agent + Autonomous Actions</p>
+              <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">TrustFix now watches, decides, and acts without waiting for clicks.</h1>
+              <p className="mt-4 max-w-3xl text-slate-200">ETA watchdog, anomaly detection, homeowner notification queue, and memory-driven routing are live in this autonomy layer.</p>
             </div>
           </header>
 
           <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
             <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-xl font-extrabold">Intake agent</h2>
-              <div className="mt-4 grid gap-4 md:grid-cols-2">
-                <label className="text-sm font-semibold text-slate-700">Describe your issue
-                  <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="4" className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2" />
-                </label>
-                <div>
-                  <label className="text-sm font-semibold text-slate-700">ZIP code
-                    <input value={zip} onChange={(e) => setZip(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2" />
-                  </label>
-                  <button onClick={runIntake} disabled={loading} className="mt-4 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white hover:bg-indigo-500 disabled:opacity-60">
-                    {loading ? 'Parsing...' : 'Run intake + routing'}
-                  </button>
-                </div>
-              </div>
-
-              {parsed && (
-                <pre className="mt-4 overflow-auto rounded-xl bg-slate-900 p-4 text-xs text-slate-100">{JSON.stringify(parsed, null, 2)}</pre>
-              )}
+              <h2 className="text-xl font-extrabold">Intake + smart routing (Phase 3)</h2>
+              <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows="3" className="mt-3 w-full rounded-lg border border-slate-300 px-3 py-2" />
+              <button onClick={runIntake} className="mt-3 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-bold text-white">Run intake</button>
+              {parsed && <pre className="mt-3 overflow-auto rounded-lg bg-slate-900 p-3 text-xs text-slate-100">{JSON.stringify(parsed, null, 2)}</pre>}
             </section>
 
             <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <h2 className="text-xl font-extrabold">Smart routed contractors (live score aware)</h2>
-              <div className="mt-4 grid gap-4 lg:grid-cols-3">
-                {matches.map((c, idx) => (
-                  <article key={c.id} className="rounded-xl border border-slate-200 p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-bold">#{idx + 1} {c.name}</p>
-                      <span className="rounded-md bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700">Score {c.score}</span>
-                    </div>
-                    <p className="mt-1 text-sm text-slate-600">{c.trade} • ETA {c.etaMin}m • Active jobs {c.activeJobs}</p>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <button onClick={() => addEvent(c.id, 'completed_on_time', 5)} className="rounded bg-emerald-600 px-2 py-1 text-xs font-bold text-white">+ On-time</button>
-                      <button onClick={() => addEvent(c.id, 'dispute', 1)} className="rounded bg-red-600 px-2 py-1 text-xs font-bold text-white">+ Dispute</button>
-                    </div>
-                  </article>
+              <h2 className="text-xl font-extrabold">Live matches</h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-3">
+                {matches.map((c) => (
+                  <div key={c.id} className="rounded-xl border border-slate-200 p-4">
+                    <p className="font-bold">{c.name}</p>
+                    <p className="text-sm text-slate-600">{c.trade} • score {c.score} • ETA {c.etaMin}m</p>
+                    {suspended[c.id] && <p className="mt-2 text-xs font-bold text-red-600">Suspended from new matches</p>}
+                  </div>
+                ))}
+              </div>
+            </section>
+
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <h2 className="text-xl font-extrabold">In-progress jobs monitored by watchdog</h2>
+              <div className="mt-4 space-y-3">
+                {jobs.map((j) => (
+                  <div key={j.id} className="rounded-xl border border-slate-200 p-4">
+                    <p className="font-bold">{j.title} ({j.id})</p>
+                    <p className="text-sm text-slate-600">{contractorById(j.contractorId).name} • {j.status} • quoted ${j.quotedPrice}</p>
+                  </div>
                 ))}
               </div>
             </section>
 
             <section className="rounded-2xl bg-slate-900 p-6 text-white">
-              <h2 className="text-xl font-extrabold">Agent reasoning log</h2>
+              <h2 className="text-xl font-extrabold">Homeowner notification center</h2>
+              <p className="mt-1 text-sm text-slate-300">Every agent-initiated action appears here with Accept / Dismiss / Ask why.</p>
+              <div className="mt-4 space-y-3">
+                {notifications.map((n) => (
+                  <div key={n.id} className="rounded-lg bg-slate-800 p-3">
+                    <p className="text-sm">{n.message}</p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      <button onClick={() => handleNotificationAction(n, 'accept')} className="rounded bg-emerald-600 px-2 py-1 text-xs font-bold">Accept</button>
+                      <button onClick={() => handleNotificationAction(n, 'dismiss')} className="rounded bg-slate-600 px-2 py-1 text-xs font-bold">Dismiss</button>
+                      <button onClick={() => handleNotificationAction(n, 'why')} className="rounded bg-indigo-600 px-2 py-1 text-xs font-bold">Ask agent why</button>
+                    </div>
+                  </div>
+                ))}
+                {notifications.length === 0 && <p className="text-sm text-slate-400">No proactive actions yet.</p>}
+              </div>
+            </section>
+
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <h2 className="text-xl font-extrabold">Agent memory + reasoning log</h2>
+              <p className="mt-2 text-sm text-slate-600">Dain accepted Maya Plumbing {preferenceMemory.acceptedByContractor[1] || 0} times; preference boost applied in future ranking.</p>
               <ul className="mt-3 space-y-2">
-                {agentLog.map((line, i) => <li key={i} className="rounded-lg bg-slate-800 px-3 py-2 text-sm">{line}</li>)}
+                {agentLog.map((line, i) => <li key={i} className="rounded bg-slate-100 px-3 py-2 text-sm">{line}</li>)}
               </ul>
             </section>
           </main>

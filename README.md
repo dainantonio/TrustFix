@@ -2,47 +2,39 @@
 
 TrustFix is a local-first home services marketplace designed to beat legacy directories with AI-powered reliability.
 
-## Phase 3 Implemented: LLM Intake Parsing + Smart Routing Rules
-This phase adds the intelligence layer that turns intake into structured reasoning and rule-driven routing.
+## Phase 4 Implemented: Proactive Agent + Autonomous Actions
+Phase 4 adds autonomy on top of the Phase 2 data layer and Phase 3 intelligence layer.
 
-### Structured Extraction Layer
-Free-text homeowner descriptions are parsed into structured JSON:
+## What is now live
 
-```json
-{
-  "trade": "plumbing",
-  "severity": "moderate",
-  "urgency": "same-day",
-  "summary": "Shutoff valve leak, 48hrs ongoing",
-  "suggestedActions": ["Inspect shutoff valve", "Check water pressure", "Assess pipe condition"],
-  "flags": ["potential_water_damage"]
-}
-```
+### 1) ETA watchdog (background loop)
+- A recurring background loop monitors all `In Progress` jobs.
+- If ETA is exceeded by `>15 min`, the agent auto-logs an alert and surfaces re-match options.
+- If ETA is exceeded by `>45 min`, the agent automatically initiates a re-match proposal and notifies the homeowner with backup contractor details.
 
-### LLM + Fallback Strategy
-- `llmParseIntake` calls an LLM endpoint when `window.TRUSTFIX_OPENAI_API_KEY` is available.
-- If unavailable/failing, the system gracefully falls back to a keyword parser.
-- Agent log includes a warning when fallback is used.
+### 2) Anomaly detection
+- **Price variance:** quote flagged when `>30%` above category average.
+- **Repeat disputes:** contractor suspended from new matches if they receive a 2nd dispute within 30 days.
+- **Unusual duration:** long-running “simple faucet fix” jobs are flagged for review after 4+ hours in progress.
 
-### Declarative Routing Rules Engine
-Rules are encoded as `when + apply + description` objects and applied in sequence:
-1. `severity=critical` → only contractors with score `>= 95` and ETA `<= 2hrs`
-2. `urgency=emergency` → top 3 are selected for simultaneous alerting behavior
-3. `flags` includes `potential_water_damage` → mitigation specialists are added to pool
-4. Global capacity guardrail: exclude contractors with active jobs `> 2`
+### 3) Homeowner notification queue
+- In-app notification center stores all autonomous agent actions.
+- Each notification supports `Accept`, `Dismiss`, and `Ask agent why`.
 
-### Explainability Layer
-Agent reasoning log shows full decision narrative, for example:
-- Parsed trade/severity/urgency
-- Which routing rules were applied
-- Which candidates were excluded
-- How many candidates were ranked
+### 4) Agent memory
+- Homeowner preference memory tracks accepted contractors and boosts future ranking.
+- Address-level pattern awareness flags repeat job patterns (e.g., multiple plumbing visits in 60 days) and suggests preventive inspection.
 
 ## Why this matters
-TrustFix now behaves like an intake agent that understands real homeowner language and explains recommendations with transparent routing logic.
+TrustFix now acts on behalf of homeowners without waiting for manual interaction, which is the core of genuinely agentic behavior.
+
+## Build sequence
+- **Phase 2:** Data layer (reliability events and live trust scoring)
+- **Phase 3:** Intelligence layer (structured parsing + declarative routing)
+- **Phase 4:** Autonomy layer (watchdogs, anomaly actions, proactive notifications, memory)
 
 ## Next Build Targets
-- Add provider abstraction to support OpenAI + Gemini from environment config.
-- Move LLM calls to backend to protect API keys.
-- Persist intake parse artifacts and routing decisions for auditability.
-- Add automated tests for parser fallback, rule application order, and emergency fan-out behavior.
+- Move autonomous checks and notifications to backend workers.
+- Persist notifications, memory, and policy actions in a real datastore.
+- Integrate outbound channels (SMS/email) for high-severity alerts.
+- Add automated policy tests for watchdog thresholds and suspension logic.
