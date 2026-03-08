@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrustFix | Contractor Profile</title>
+  <link rel="stylesheet" href="src/styles.css?v=20260309a" />
+  <style>
+    .wrap{max-width:1120px;margin:22px auto;padding:0 20px}
+    .grid{display:grid;grid-template-columns:2fr 1fr;gap:16px}.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+    .history{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;align-items:end;height:160px}
+    .bar{background:#c7d2fe;border-radius:8px 8px 4px 4px;position:relative}
+    .timeline{display:grid;gap:8px}.event{display:flex;justify-content:space-between;gap:10px;padding:10px;border:1px solid #e2e8f0;border-radius:10px;background:#fff}
+    @media(max-width:960px){.grid{grid-template-columns:1fr}.stats{grid-template-columns:repeat(2,1fr)}}
+  </style>
+</head>
+<body>
+  <nav class="tf-nav">
+    <strong>TrustFix</strong>
+    <div class="tf-nav-links">
+      <a href="index.html">Landing</a><a href="demo.html">Demo</a><a href="contractor.html?id=1">Contractor Profile</a><a href="waitlist.html">Waitlist</a><a href="roadmap.html">Roadmap</a>
+    </div>
+  </nav>
+  <div class="wrap grid">
+    <main style="display:grid;gap:12px">
+      <section class="card" style="padding:18px">
+        <div style="display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+          <div>
+            <h1 id="name" style="margin:0"></h1>
+            <p id="trade" style="margin:6px 0 0;color:#64748b"></p>
+          </div>
+          <div id="scorePill" class="score-pill"></div>
+        </div>
+      </section>
+      <section class="card" style="padding:14px">
+        <h3 style="margin:0 0 10px">6-Month Trust Score History</h3>
+        <div id="history" class="history"></div>
+      </section>
+      <section class="stats">
+        <div class="card" style="padding:12px"><div id="jobs" style="font-size:24px;font-weight:800"></div><small>Jobs</small></div>
+        <div class="card" style="padding:12px"><div id="ontime" style="font-size:24px;font-weight:800"></div><small>On-time %</small></div>
+        <div class="card" style="padding:12px"><div id="disputes" style="font-size:24px;font-weight:800"></div><small>Disputes</small></div>
+        <div class="card" style="padding:12px"><div id="rating" style="font-size:24px;font-weight:800"></div><small>Avg rating</small></div>
+      </section>
+      <section class="card" style="padding:14px">
+        <h3 style="margin:0 0 10px">Score Breakdown</h3>
+        <div>On-time reliability<div class="progress-track"><span id="b1"></span></div></div>
+        <div style="margin-top:8px">Dispute pressure<div class="progress-track"><span id="b2"></span></div></div>
+        <div style="margin-top:8px">Rating confidence<div class="progress-track"><span id="b3"></span></div></div>
+      </section>
+      <section class="card" style="padding:14px">
+        <h3 style="margin:0 0 10px">Reliability Timeline</h3>
+        <div id="timeline" class="timeline"></div>
+      </section>
+    </main>
+    <aside style="display:grid;gap:12px;align-content:start">
+      <section class="card" style="padding:14px">
+        <a class="btn-primary" href="waitlist.html" style="width:100%">Book this Pro</a>
+        <p id="susp" style="margin:10px 0 0;font-size:13px"></p>
+      </section>
+      <section class="card" style="padding:14px"><h4 style="margin:0 0 8px">Trust Checks</h4>
+        <p><span class="status-dot good"></span>Verified License</p>
+        <p><span class="status-dot good"></span>Insurance Active</p>
+        <p><span class="status-dot good"></span>Background Check</p>
+      </section>
+    </aside>
+  </div>
+
+  <script src="src/data.js"></script>
+  <script src="src/scoring.js"></script>
+  <script src="src/api.js"></script>
+  <script>
+    const { contractors, loadEvents } = window.TrustFixData;
+    const { calcScore, scoreLabel, scoreClass } = window.TrustFixScoring;
+    const { getSuspensions } = window.TrustFixApi;
+    const cid = Math.min(5, Math.max(1, Number(new URLSearchParams(location.search).get('id') || 1)));
+    const contractor = contractors.find(c => c.id === cid) || contractors[0];
+    const events = loadEvents().filter(e => e.contractorId === contractor.id).sort((a,b)=>b.timestamp-a.timestamp);
+    const score = calcScore(events);
+
+    name.textContent = contractor.name;
+    trade.textContent = contractor.trade.toUpperCase() + ' • Public Trust Profile';
+    scorePill.textContent = `${score} · ${scoreLabel(score)}`;
+    scorePill.className = `score-pill ${scoreClass(score)}`;
+
+    const ontime = events.filter(e=>e.type==='completed_on_time').length;
+    const disputes = events.filter(e=>e.type==='dispute').length;
+    const late = events.filter(e=>e.type==='late').length;
+    const ratings = events.filter(e=>typeof e.rating==='number').map(e=>e.rating);
+
+    jobs.textContent = events.length;
+    ontime.textContent = `${events.length?Math.round((ontime/events.length)*100):0}%`;
+    disputes.textContent = disputes;
+    rating.textContent = ratings.length?(ratings.reduce((a,b)=>a+b,0)/ratings.length).toFixed(1):'—';
+
+    const history = document.getElementById('history');
+    for(let i=5;i>=0;i--){
+      const d = new Date(); d.setMonth(d.getMonth()-i);
+      const mStart = new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+      const mEnd = new Date(d.getFullYear(), d.getMonth()+1, 1).getTime();
+      const monthEvents = events.filter(e=>e.timestamp>=mStart && e.timestamp<mEnd);
+      const mScore = calcScore(monthEvents.length?monthEvents:events);
+      const el = document.createElement('div');
+      el.className='bar'; el.style.height = `${Math.max(18,mScore)}%`;
+      el.innerHTML = `<span style="position:absolute;bottom:-18px;left:0;font-size:11px;color:#64748b">${d.toLocaleString('en',{month:'short'})}</span>`;
+      history.appendChild(el);
+    }
+
+    const icon = { completed_on_time:'✅', late:'⏰', dispute:'⚠️', cancelled:'❌' };
+    timeline.innerHTML = events.slice(0,10).map(e => `<div class="event"><span>${icon[e.type]||'•'} ${e.type.replaceAll('_',' ')}</span><span class="badge" style="background:#f1f5f9">${new Date(e.timestamp).toLocaleDateString()}</span></div>`).join('') || '<p style="color:#64748b">No events yet.</p>';
+
+    b1.style.setProperty('--progress', `${Math.round((ontime/Math.max(1,events.length))*100)}%`);
+    b2.style.setProperty('--progress', `${Math.max(4, 100 - disputes*25)}%`);
+    const avgRating = ratings.length ? ratings.reduce((a,b)=>a+b,0)/ratings.length : 3;
+    b3.style.setProperty('--progress', `${Math.round((avgRating/5)*100)}%`);
+
+    const suspended = getSuspensions();
+    susp.innerHTML = suspended[contractor.id]
+      ? '<span class="status-dot bad"></span><strong>Currently suspended from new matches.</strong>'
+      : '<span class="status-dot good"></span>Eligible for new matches.';
+  </script>
+  <footer class="tf-footer"><a href="waitlist.html">Next: Join waitlist</a></footer>
+</body>
+</html>

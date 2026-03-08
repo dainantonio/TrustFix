@@ -54,7 +54,9 @@ window.TrustFixWorker = (() => {
       }
 
       const durationHrs = (now - job.startedAt) / (1000 * 60 * 60);
-      if (job.title.toLowerCase().includes('simple faucet fix') && durationHrs > 4 && !flags.durationAlert) {
+      const quickFix = /(simple|minor|faucet|drain|leak)/i.test(job.title);
+      const durationThreshold = quickFix ? 3.5 : job.trade === 'mitigation' ? 6 : 4.5;
+      if (durationHrs > durationThreshold && !flags.durationAlert) {
         nextNotifications = addUniqueNotification(nextNotifications, {
           key: `${job.id}-duration`,
           type: 'anomaly',

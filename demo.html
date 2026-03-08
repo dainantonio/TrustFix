@@ -12,9 +12,12 @@
   <link rel="stylesheet" href="src/styles.css?v=20260308c" />
 </head>
 <body class="bg-slate-50 text-slate-900">
-  <div class="mx-auto max-w-7xl px-6 pt-4">
-    <a href="index.html" class="text-sm font-semibold text-indigo-700 hover:underline">← Back to landing page</a>
-  </div>
+  <nav class="tf-nav">
+    <strong>TrustFix</strong>
+    <div class="tf-nav-links">
+      <a href="index.html">Landing</a><a href="demo.html">Demo</a><a href="contractor.html?id=1">Contractor Profile</a><a href="waitlist.html">Waitlist</a><a href="roadmap.html">Roadmap</a>
+    </div>
+  </nav>
   <div id="root"></div>
 
   <script src="src/data.js?v=20260308"></script>
@@ -25,5 +28,6 @@
   <script src="src/worker.js?v=20260308"></script>
   <script src="src/reset.js?v=20260308c"></script>
   <script type="text/babel" src="src/App.jsx?v=20260308c"></script>
+  <footer class="tf-footer">Next: <a href="contractor.html?id=1">Contractor profile</a></footer>
 </body>
 </html>

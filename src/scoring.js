@@ -10,12 +10,29 @@ window.TrustFixScoring = (() => {
     const late = sorted.filter((e) => e.type === 'late').length;
     const disputes = sorted.filter((e) => e.type === 'dispute').length;
     const cancelled = sorted.filter((e) => e.type === 'cancelled').length;
+    const rated = sorted.filter((e) => typeof e.rating === 'number');
+    const avgRating = rated.length ? rated.reduce((acc, e) => acc + e.rating, 0) / rated.length : 4;
+    const ratingBonus = Math.max(-4, Math.min(6, (avgRating - 3.8) * 4));
+
     const total = onTime + late + disputes + cancelled;
     const onTimeRate = total ? onTime / total : 0;
     const completionVolume = Math.min(total / 15, 1);
     const disputePenalty = disputes + cancelled * 0.6;
-    const score = baseScore * recencyWeight + onTimeRate * 40 + completionVolume * 10 - disputePenalty * 15;
+    const score = baseScore * recencyWeight + onTimeRate * 40 + completionVolume * 10 - disputePenalty * 15 + ratingBonus;
     return Math.max(0, Math.min(100, Math.round(score)));
+  }
+
+  function scoreLabel(score) {
+    if (score >= 90) return 'Elite';
+    if (score >= 75) return 'Strong';
+    if (score >= 60) return 'Fair';
+    return 'Watch';
+  }
+
+  function scoreClass(score) {
+    if (score >= 85) return 'high';
+    if (score >= 65) return 'mid';
+    return 'low';
   }
 
   function withPreferenceBoost(contractors, events, acceptedByContractor) {
@@ -27,5 +44,5 @@ window.TrustFixScoring = (() => {
     });
   }
 
-  return { calcScore, withPreferenceBoost };
+  return { calcScore, scoreLabel, scoreClass, withPreferenceBoost };
 })();
