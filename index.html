@@ -89,7 +89,7 @@ body::after {
   width: 28px; height: 28px; border-radius: 7px;
   background: linear-gradient(135deg, var(--teal), var(--teal-2));
   display: flex; align-items: center; justify-content: center;
-  font-size: 13px;
+  flex-shrink: 0;
 }
 .nav-links { display: flex; align-items: center; gap: 32px; }
 .nav-links a {
@@ -473,12 +473,12 @@ body::after {
 }
 .step-card:hover .step-icon { border-color: rgba(0,229,195,0.3); background: var(--teal-glow); }
 .step-h3 { font-family: var(--sans); font-size: 16px; font-weight: 600; color: var(--t1); margin-bottom: 10px; }
-.step-p  { font-size: 13px; font-weight: 300; color: var(--t2); line-height: 1.7; }
+.step-p  { font-size: 14px; font-weight: 300; color: var(--t2); line-height: 1.7; }
 
 /* ═══════════════════════════════════════════════
    FEATURES — AGENT ENGINE
 ═══════════════════════════════════════════════ */
-.agent-section { padding: 100px 0; }
+.agent-section { padding: 130px 0; }
 
 .agent-grid {
   display: grid; grid-template-columns: 1fr 1fr;
@@ -508,7 +508,7 @@ body::after {
 }
 .agent-feat:hover .agent-feat-icon { background: var(--teal-glow); border-color: rgba(0,229,195,0.2); }
 .agent-feat-text h4 { font-size: 14px; font-weight: 600; color: var(--t1); margin-bottom: 5px; }
-.agent-feat-text p  { font-size: 13px; font-weight: 300; color: var(--t2); line-height: 1.65; }
+.agent-feat-text p  { font-size: 14px; font-weight: 300; color: var(--t2); line-height: 1.65; }
 
 /* Live agent log */
 .live-log-card {
@@ -552,7 +552,7 @@ body::after {
 /* ═══════════════════════════════════════════════
    TRUST SCORE SECTION
 ═══════════════════════════════════════════════ */
-.score-section { padding: 100px 0; background: var(--surface); border-top: 1px solid var(--border); }
+.score-section { padding: 80px 0 100px; background: var(--surface); border-top: 1px solid var(--border); }
 
 .score-demo-grid {
   display: grid; grid-template-columns: 1fr 1fr;
@@ -598,12 +598,12 @@ body::after {
   background: var(--teal); margin-top: 7px;
 }
 .score-point h4 { font-size: 15px; font-weight: 600; color: var(--t1); margin-bottom: 5px; }
-.score-point p  { font-size: 13px; font-weight: 300; color: var(--t2); line-height: 1.65; }
+.score-point p  { font-size: 14px; font-weight: 300; color: var(--t2); line-height: 1.65; }
 
 /* ═══════════════════════════════════════════════
    TESTIMONIALS
 ═══════════════════════════════════════════════ */
-.testimonials-section { padding: 100px 0; }
+.testimonials-section { padding: 72px 0 80px; }
 
 .testimonials-grid {
   display: grid; grid-template-columns: repeat(3, 1fr);
@@ -728,6 +728,38 @@ body::after {
   .cta-inner { padding: 0 24px; }
   .cta-form { flex-direction: column; }
 }
+
+/* Mobile hero trust card (shown when terminal is hidden) */
+.hero-mobile-card {
+  display: none;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 20px;
+  margin-top: 8px;
+}
+.hmc-row {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 0; border-bottom: 1px solid var(--border);
+}
+.hmc-row:last-child { border-bottom: none; }
+.hmc-name { font-size: 13px; font-weight: 600; color: var(--t1); }
+.hmc-meta { font-size: 11px; color: var(--t3); margin-top: 2px; }
+.hmc-score { font-family: var(--mono); font-size: 16px; font-weight: 700; }
+.hmc-score.high { color: var(--teal); }
+.hmc-score.mid  { color: var(--gold); }
+.hmc-score.low  { color: var(--red); }
+.hmc-label { font-family: var(--mono); font-size: 9px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--t3); margin-top: 1px; text-align: right; }
+.hmc-header { font-family: var(--mono); font-size: 9px; font-weight: 700; letter-spacing: 0.10em; text-transform: uppercase; color: var(--t3); margin-bottom: 4px; }
+.hmc-notif {
+  margin-top: 12px; padding: 10px 12px; border-radius: 9px;
+  background: rgba(245,55,78,0.07); border: 1px solid rgba(245,55,78,0.20);
+  font-size: 11px; color: var(--t2); line-height: 1.5;
+}
+.hmc-notif strong { color: var(--red); font-weight: 600; }
+@media (max-width: 900px) {
+  .hero-mobile-card { display: block; }
+}
   </style>
 </head>
 <body>
@@ -738,7 +770,11 @@ body::after {
 <!-- ─── NAV ─── -->
 <nav class="nav">
   <a href="index.html" class="nav-logo" style="cursor:none">
-    <span class="nav-logo-mark">⚡</span>
+    <span class="nav-logo-mark">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M7 1L2 8h5l0 5 5-7H7L7 1z" fill="#05080d" stroke="#05080d" stroke-width="0.5" stroke-linejoin="round"/>
+      </svg>
+    </span>
     TrustFix
   </a>
   <div class="nav-links">
@@ -765,7 +801,7 @@ body::after {
     <div class="hero-left">
       <div class="hero-eyebrow">
         <span class="hero-eyebrow-dot"></span>
-        <span class="hero-eyebrow-text">Trust Infrastructure · Home Services OS</span>
+        <span class="hero-eyebrow-text">Smarter than Angie's List · Launching Columbus, OH</span>
       </div>
 
       <h1 class="hero-h1">
@@ -775,9 +811,9 @@ body::after {
       </h1>
 
       <p class="hero-sub">
-        TrustFix replaces the guesswork of Angie's List and HomeAdvisor with
-        <strong>live reliability scores, autonomous job monitoring,</strong> and an
-        AI agent that re-matches you if a contractor is late — before you even notice.
+        You shouldn't have to wonder if your contractor will actually show up.
+        TrustFix shows you <strong>real on-time rates and dispute history</strong> before you book —
+        then monitors every job automatically. <strong>If they're late, we find you a replacement. Before you even notice.</strong>
       </p>
 
       <div class="hero-ctas">
@@ -785,17 +821,43 @@ body::after {
           Join Early Access
           <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7h10M7 2l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </a>
-        <a href="demo.html" class="btn-hero-ghost">Watch live demo →</a>
       </div>
+      <p style="font-size:13px;color:var(--t3);margin-bottom:32px;">
+        or <a href="demo.html" style="color:var(--t2);border-bottom:1px solid var(--border-hi);padding-bottom:1px;transition:color 0.2s;" onmouseover="this.style.color='var(--t1)'" onmouseout="this.style.color='var(--t2)'">watch the live demo →</a>
+      </p>
 
       <div class="hero-social-proof">
         <div class="hero-proof-avatars">
-          <span>🏠</span><span>🔧</span><span>❄️</span><span>🌊</span>
+          <span style="background:linear-gradient(135deg,#2d6a4f,#40916c);color:#d8f3dc;font-family:var(--sans);font-size:11px;font-weight:700;">SM</span>
+          <span style="background:linear-gradient(135deg,#1d3557,#457b9d);color:#a8dadc;font-family:var(--sans);font-size:11px;font-weight:700;">MT</span>
+          <span style="background:linear-gradient(135deg,#6b2737,#c1121f);color:#ffd6d8;font-family:var(--sans);font-size:11px;font-weight:700;">DK</span>
+          <span style="background:linear-gradient(135deg,#3d405b,#81b29a);color:#e8f4f0;font-family:var(--sans);font-size:11px;font-weight:700;">JR</span>
         </div>
         <div class="hero-proof-text">
-          <strong>247 pros & homeowners</strong> already on waitlist<br/>
-          Pilot launching in Columbus, OH — Q2 2026
+          <strong>247 pros &amp; homeowners</strong> on waitlist<br/>
+          <span style="color:var(--teal);font-weight:500;">Pilot launching Columbus, OH — Q2 2026</span>
         </div>
+      </div>
+    </div>
+
+
+    <!-- Mobile trust card (replaces terminal on small screens) -->
+    <div class="hero-mobile-card">
+      <div class="hmc-header">Live contractor scores · Columbus, OH</div>
+      <div class="hmc-row">
+        <div><div class="hmc-name">Maya Plumbing Co.</div><div class="hmc-meta">Plumbing · 124 jobs</div></div>
+        <div><div class="hmc-score high">97</div><div class="hmc-label">Elite</div></div>
+      </div>
+      <div class="hmc-row">
+        <div><div class="hmc-name">CoolAir Pro</div><div class="hmc-meta">HVAC · 88 jobs</div></div>
+        <div><div class="hmc-score mid">78</div><div class="hmc-label">Strong</div></div>
+      </div>
+      <div class="hmc-row">
+        <div><div class="hmc-name">Springfield Rooter</div><div class="hmc-meta">Plumbing · 67 jobs</div></div>
+        <div><div class="hmc-score high">85</div><div class="hmc-label">Strong</div></div>
+      </div>
+      <div class="hmc-notif">
+        <strong>Agent alert:</strong> Marcus HVAC is 22 min past ETA on job #298. Backup contractor queued automatically.
       </div>
     </div>
 
@@ -1133,7 +1195,7 @@ body::after {
         <div class="test-stars">★★★★★</div>
         <p class="test-quote">"The agent flagged my HVAC contractor at 52 minutes late and already had a backup lined up. I didn't have to do anything."</p>
         <div class="test-attr">
-          <div class="test-avatar">🏠</div>
+          <div class="test-avatar" style="background:linear-gradient(135deg,#2d6a4f,#40916c);color:#d8f3dc;font-family:var(--sans);font-size:12px;font-weight:700;">SM</div>
           <div>
             <div class="test-name">Sarah M.</div>
             <div class="test-title">Homeowner · Columbus, OH</div>
@@ -1144,7 +1206,7 @@ body::after {
         <div class="test-stars">★★★★★</div>
         <p class="test-quote">"My trust score is 97. Customers see that upfront and book without hesitation. It's replaced every review platform I used to pay for."</p>
         <div class="test-attr">
-          <div class="test-avatar">🔧</div>
+          <div class="test-avatar" style="background:linear-gradient(135deg,#1d3557,#457b9d);color:#a8dadc;font-family:var(--sans);font-size:12px;font-weight:700;">MT</div>
           <div>
             <div class="test-name">Marcus T.</div>
             <div class="test-title">Master Plumber · Springfield, OH</div>
@@ -1155,7 +1217,7 @@ body::after {
         <div class="test-stars">★★★★★</div>
         <p class="test-quote">"The price anomaly flag saved me $340. The quote was 38% above average — TrustFix caught it before I approved anything."</p>
         <div class="test-attr">
-          <div class="test-avatar">👩‍💼</div>
+          <div class="test-avatar" style="background:linear-gradient(135deg,#6b2737,#c1121f);color:#ffd6d8;font-family:var(--sans);font-size:12px;font-weight:700;">DK</div>
           <div>
             <div class="test-name">Diane K.</div>
             <div class="test-title">Homeowner · Dublin, OH</div>
@@ -1169,26 +1231,38 @@ body::after {
 <!-- ─── CTA ─── -->
 <section class="cta-section">
   <div class="cta-inner">
-    <p class="section-kicker" style="text-align:center">Early access</p>
+    <p class="section-kicker" style="text-align:center">Early access · Columbus, OH</p>
     <h2 class="cta-h2">
-      Launching Q2 2026<br/>in <em>Columbus, OH.</em>
+      Stop guessing.<br/><em>Start trusting.</em>
     </h2>
     <p class="cta-sub">
-      Join the waitlist and get founding member pricing, priority access, and direct input into the product roadmap.
+      Founding members get locked-in pricing and direct input on the product. We're launching Q2 2026 — spots are limited by city.
     </p>
+
+    <!-- Waitlist momentum bar -->
+    <div style="max-width:420px;margin:0 auto 28px;background:var(--surface-2);border:1px solid var(--border);border-radius:12px;padding:16px 20px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <span style="font-family:var(--mono);font-size:10px;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.10em;">Columbus Launch</span>
+        <span style="font-family:var(--mono);font-size:10px;color:var(--t3);">247 / 500 spots</span>
+      </div>
+      <div style="height:5px;background:var(--surface-4);border-radius:3px;overflow:hidden;">
+        <div id="cta-progress-fill" style="height:100%;width:0%;background:linear-gradient(90deg,var(--teal-2),var(--teal));border-radius:3px;transition:width 1.2s var(--ease-out-expo);"></div>
+      </div>
+      <p style="font-size:11px;color:var(--t3);margin-top:8px;">49% of founding spots claimed · homeowners &amp; pros</p>
+    </div>
 
     <form class="cta-form" onsubmit="handleCtaSubmit(event)">
       <input type="email" class="cta-email" placeholder="your@email.com" id="cta-email" required />
       <a href="waitlist.html" class="btn-hero-primary" style="white-space:nowrap">
-        Reserve Spot →
+        Claim Your Spot →
       </a>
     </form>
 
-    <p class="cta-disclaimer">No payment required. Unsubscribe any time.</p>
+    <p class="cta-disclaimer">No payment required. Unsubscribe any time. Your data is never sold.</p>
     <div class="cta-links">
-      <a href="demo.html">Try the demo</a>
+      <a href="demo.html">Try the live demo</a>
       <a href="roadmap.html">View roadmap</a>
-      <a href="contractor.html?id=1">Contractor profile</a>
+      <a href="contractor.html?id=1">Sample contractor profile</a>
     </div>
   </div>
 </section>
@@ -1197,7 +1271,9 @@ body::after {
 <footer class="footer">
   <div class="footer-inner">
     <div class="footer-logo">
-      <span class="footer-logo-dot"></span>
+      <span style="width:18px;height:18px;border-radius:5px;background:linear-gradient(135deg,var(--teal),var(--teal-2));display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <svg width="9" height="9" viewBox="0 0 14 14" fill="none"><path d="M7 1L2 8h5l0 5 5-7H7L7 1z" fill="#05080d" stroke="#05080d" stroke-width="0.5" stroke-linejoin="round"/></svg>
+      </span>
       TrustFix
     </div>
     <div class="footer-links">
@@ -1326,6 +1402,17 @@ function handleCtaSubmit(e){
   e.preventDefault();
   window.location.href='waitlist.html';
 }
+
+/* CTA progress bar on scroll */
+const obsCtaProg = new IntersectionObserver(entries => entries.forEach(e => {
+  if (e.isIntersecting) {
+    const fill = document.getElementById('cta-progress-fill');
+    if (fill) fill.style.width = '49%';
+    obsCtaProg.unobserve(e.target);
+  }
+}), {threshold: 0.3});
+const ctaSection = document.querySelector('.cta-section');
+if (ctaSection) obsCtaProg.observe(ctaSection);
 
 /* Nav scroll */
 window.addEventListener('scroll',()=>{
