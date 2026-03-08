@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>TrustFix | Agentic Local Marketplace</title>
+  <title>TrustFix | Phase 2 Trust Score Engine</title>
 
   <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
@@ -18,382 +18,254 @@
                   radial-gradient(circle at 90% 10%, rgba(45,212,191,0.3), transparent 30%),
                   linear-gradient(145deg, #0f172a 0%, #111827 50%, #1e293b 100%);
     }
-    @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.3;} }
-    .pulse-dot { animation: pulse-dot 1.4s ease-in-out infinite; }
-    @keyframes slide-in { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:translateY(0)} }
-    .slide-in { animation: slide-in 0.25s ease-out forwards; }
   </style>
 </head>
 <body class="bg-slate-50 text-slate-900">
   <div id="root"></div>
 
   <script type="text/babel">
-    // ─── Pros Data ──────────────────────────────────────────────────────────────
-    const PROS = [
-      { id: 1, name: 'Maya Plumbing Co.',    trade: 'Plumber',     score: 98, eta: 32, jobs: 214, local: 'Northside',  emergency: true,  scoreBreakdown: { onTime: 96, disputes: 0, completions: 214 } },
-      { id: 2, name: 'Riverside Electric',   trade: 'Electrician', score: 96, eta: 41, jobs: 167, local: 'Downtown',   emergency: true,  scoreBreakdown: { onTime: 94, disputes: 1, completions: 167 } },
-      { id: 3, name: 'Evergreen Home Repair',trade: 'Handyman',    score: 95, eta: 27, jobs: 289, local: 'East End',   emergency: false, scoreBreakdown: { onTime: 93, disputes: 2, completions: 289 } },
-      { id: 4, name: 'Springfield Rooter',   trade: 'Plumber',     score: 94, eta: 24, jobs: 141, local: 'Westfield',  emergency: true,  scoreBreakdown: { onTime: 92, disputes: 0, completions: 141 } },
-      { id: 5, name: 'Solid Spark Systems',  trade: 'Electrician', score: 93, eta: 35, jobs: 122, local: 'South Park', emergency: false, scoreBreakdown: { onTime: 91, disputes: 1, completions: 122 } },
-      { id: 6, name: 'QuickFix Handyman',    trade: 'Handyman',    score: 89, eta: 18, jobs:  76, local: 'Northside',  emergency: true,  scoreBreakdown: { onTime: 88, disputes: 3, completions:  76 } },
+    const STORAGE_KEY = 'trustfix.reliabilityEvents.v1';
+
+    const contractors = [
+      { id: 1, name: 'Maya Plumbing Co.', trade: 'Plumber', eta: 32, local: 'Northside' },
+      { id: 2, name: 'Riverside Electric', trade: 'Electrician', eta: 41, local: 'Downtown' },
+      { id: 3, name: 'Evergreen Home Repair', trade: 'Handyman', eta: 27, local: 'East End' },
+      { id: 4, name: 'Springfield Rooter', trade: 'Plumber', eta: 24, local: 'Westfield' },
+      { id: 5, name: 'Solid Spark Systems', trade: 'Electrician', eta: 35, local: 'South Park' },
     ];
 
-    const STAGES = ['Intake', 'Matching', 'Booked', 'In Progress', 'Completed'];
-
-    // ─── Agent Logic ────────────────────────────────────────────────────────────
-    function parseIssue(text) {
-      const v = text.toLowerCase();
-      if (/pipe|leak|drain|flood|water|toilet|faucet/.test(v))
-        return { trade: 'Plumber',     urgency: 'High',   summary: 'Plumbing issue detected. Routing licensed plumbers prioritizing emergency response and completion rate.' };
-      if (/power|outlet|breaker|light|electric|circuit|wire/.test(v))
-        return { trade: 'Electrician', urgency: 'High',   summary: 'Electrical issue detected. Prioritizing electricians with same-day diagnostics and high on-time arrival.' };
-      return   { trade: 'Handyman',    urgency: 'Medium', summary: 'General repair task. Matching by reliability score, proximity, and recent homeowner ratings.' };
-    }
-
-    function rankMatches(trade, urgency) {
-      return PROS
-        .filter(p => p.trade === trade)
-        .map(p => {
-          let score = p.score;
-          if (urgency === 'High' && p.emergency) score += 3;
-          score -= p.eta * 0.05;
-          return { ...p, rankScore: Math.round(score * 10) / 10 };
-        })
-        .sort((a, b) => b.rankScore - a.rankScore)
-        .slice(0, 3);
-    }
-
-    // Agent reasoning messages per stage transition
-    function agentReasoning(stage, analysis, topPro) {
-      const ts = () => new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-      const map = {
-        'Intake':      () => ({ time: ts(), msg: `Intake parsed — detected trade: ${analysis.trade}, urgency: ${analysis.urgency}. ${analysis.summary}` }),
-        'Matching':    () => ({ time: ts(), msg: `Matching complete — top candidate: ${topPro.name} (score ${topPro.score}, ETA ${topPro.eta}m). ${topPro.scoreBreakdown.onTime}% on-time across ${topPro.scoreBreakdown.completions} jobs, ${topPro.scoreBreakdown.disputes} disputes.` }),
-        'Booked':      () => ({ time: ts(), msg: `Job booked with ${topPro.name}. Confirmation sent. Agent monitoring ETA window.` }),
-        'In Progress': () => ({ time: ts(), msg: `${topPro.name} marked as on-site. Job timer started. Agent will flag delays if check-in exceeds scheduled window.` }),
-        'Completed':   () => ({ time: ts(), msg: `Job closed. Reliability event recorded for ${topPro.name}. Trust score updated. Homeowner review prompt queued.` }),
-      };
-      return map[stage] ? map[stage]() : null;
-    }
-
-    // ─── Persistence ────────────────────────────────────────────────────────────
-    function loadJobs() {
-      try { return JSON.parse(localStorage.getItem('tf_jobs') || '[]'); } catch { return []; }
-    }
-    function saveJobs(jobs) {
-      try { localStorage.setItem('tf_jobs', JSON.stringify(jobs)); } catch {}
-    }
-
-    let jobCounter = loadJobs().length;
-
-    // ─── Job Card Component ──────────────────────────────────────────────────────
-    function JobCard({ job, onAdvance }) {
-      const [expanded, setExpanded] = React.useState(true);
-      const stageIdx = STAGES.indexOf(job.stage);
-      const statusColor = {
-        'Intake':      'bg-amber-100 text-amber-800',
-        'Matching':    'bg-blue-100 text-blue-800',
-        'Booked':      'bg-violet-100 text-violet-800',
-        'In Progress': 'bg-indigo-100 text-indigo-800',
-        'Completed':   'bg-emerald-100 text-emerald-800',
-      }[job.stage] || 'bg-slate-100 text-slate-600';
-
-      const isActive = job.stage !== 'Completed';
-
-      return (
-        <article className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden slide-in">
-          {/* Header */}
-          <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100 cursor-pointer" onClick={() => setExpanded(e => !e)}>
-            <div className="flex items-center gap-3 min-w-0">
-              <div className={`flex-shrink-0 w-2 h-2 rounded-full ${isActive ? 'bg-indigo-500 pulse-dot' : 'bg-emerald-400'}`} />
-              <div className="min-w-0">
-                <p className="font-bold text-sm truncate">Job #{job.id} — {job.analysis.trade}</p>
-                <p className="text-xs text-slate-500 truncate mt-0.5">{job.issue.slice(0, 60)}{job.issue.length > 60 ? '…' : ''}</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2 ml-4 flex-shrink-0">
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${statusColor}`}>{job.stage}</span>
-              <span className="text-slate-400 text-xs">{expanded ? '▲' : '▼'}</span>
-            </div>
-          </div>
-
-          {expanded && (
-            <div className="px-5 py-4 space-y-4">
-              {/* Stage track */}
-              <div className="flex gap-1">
-                {STAGES.map((s, i) => (
-                  <div key={s} className={`flex-1 rounded text-center py-1 text-xs font-semibold transition-colors
-                    ${i < stageIdx ? 'bg-indigo-100 text-indigo-600' :
-                      i === stageIdx ? 'bg-indigo-600 text-white' :
-                      'bg-slate-100 text-slate-400'}`}>
-                    {s}
-                  </div>
-                ))}
-              </div>
-
-              {/* Top match */}
-              {job.topPro && (
-                <div className="rounded-xl bg-slate-50 ring-1 ring-slate-200 px-4 py-3 flex items-center justify-between gap-4">
-                  <div>
-                    <p className="font-bold text-sm">{job.topPro.name}</p>
-                    <p className="text-xs text-slate-500 mt-0.5">{job.topPro.trade} · {job.topPro.local} · ETA {job.topPro.eta}m</p>
-                    <p className="text-xs text-slate-400 mt-1">
-                      {job.topPro.scoreBreakdown.onTime}% on-time · {job.topPro.scoreBreakdown.completions} jobs · {job.topPro.scoreBreakdown.disputes} disputes
-                    </p>
-                  </div>
-                  <span className="rounded-lg bg-emerald-50 px-3 py-2 text-sm font-extrabold text-emerald-700 flex-shrink-0">
-                    {job.topPro.score}
-                  </span>
-                </div>
-              )}
-
-              {/* Agent log */}
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-2">Agent Activity Log</p>
-                <div className="space-y-1.5 max-h-36 overflow-y-auto pr-1">
-                  {job.log.map((entry, i) => (
-                    <div key={i} className="flex gap-2 text-xs">
-                      <span className="flex-shrink-0 text-slate-400 font-mono">{entry.time}</span>
-                      <span className="text-slate-700">{entry.msg}</span>
-                    </div>
-                  ))}
-                  {job.stage !== 'Completed' && (
-                    <div className="flex gap-2 text-xs items-center">
-                      <span className="flex-shrink-0 text-slate-400 font-mono">——</span>
-                      <span className="text-slate-400 italic pulse-dot">Agent waiting…</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Advance */}
-              {isActive && (
-                <button
-                  onClick={() => onAdvance(job.id)}
-                  className="w-full rounded-lg bg-indigo-600 py-2 text-sm font-bold text-white hover:bg-indigo-500 transition-colors"
-                >
-                  Advance → {STAGES[stageIdx + 1] || 'Done'}
-                </button>
-              )}
-            </div>
-          )}
-        </article>
-      );
-    }
-
-    // ─── New Job Form ────────────────────────────────────────────────────────────
-    function NewJobForm({ onSubmit }) {
-      const [issue, setIssue] = React.useState('');
-      const [zip, setZip] = React.useState('01103');
-      const examples = [
-        'Burst pipe in basement, water rising quickly.',
-        'Kitchen outlet not working, circuit breaker keeps tripping.',
-        'Deck boards are rotting, need full replacement.',
+    function seedEvents() {
+      const now = Date.now();
+      const day = 24 * 60 * 60 * 1000;
+      return [
+        { contractorId: 1, jobId: 'j-100', type: 'completed_on_time', timestamp: now - day * 2, rating: 5 },
+        { contractorId: 1, jobId: 'j-101', type: 'completed_on_time', timestamp: now - day * 1, rating: 5 },
+        { contractorId: 2, jobId: 'j-200', type: 'late', timestamp: now - day * 5, rating: 3 },
+        { contractorId: 2, jobId: 'j-201', type: 'completed_on_time', timestamp: now - day * 1, rating: 4 },
+        { contractorId: 3, jobId: 'j-300', type: 'cancelled', timestamp: now - day * 3, rating: 2 },
+        { contractorId: 4, jobId: 'j-400', type: 'completed_on_time', timestamp: now - day * 7, rating: 5 },
+        { contractorId: 5, jobId: 'j-500', type: 'dispute', timestamp: now - day * 10, rating: 1 },
       ];
+    }
 
-      const handleSubmit = (e) => {
-        e.preventDefault();
-        if (!issue.trim()) return;
-        onSubmit(issue.trim(), zip.trim());
-        setIssue('');
-      };
+    function loadEvents() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (!raw) {
+          const seeded = seedEvents();
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(seeded));
+          return seeded;
+        }
+        return JSON.parse(raw);
+      } catch {
+        return seedEvents();
+      }
+    }
+
+    function saveEvents(events) {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(events));
+    }
+
+    function parseIssue(text) {
+      const value = text.toLowerCase();
+      if (value.includes('pipe') || value.includes('leak') || value.includes('drain')) return 'Plumber';
+      if (value.includes('power') || value.includes('outlet') || value.includes('breaker') || value.includes('light')) return 'Electrician';
+      return 'Handyman';
+    }
+
+    function calcScore(events) {
+      if (!events.length) return 60;
+
+      const now = Date.now();
+      const sorted = [...events].sort((a, b) => a.timestamp - b.timestamp);
+      const latest = sorted[sorted.length - 1];
+      const ageDays = (now - latest.timestamp) / (1000 * 60 * 60 * 24);
+
+      const baseScore = 50;
+      const recencyWeight = Math.max(0.7, 1.25 - Math.min(ageDays / 60, 0.55));
+      const completedOnTime = sorted.filter((e) => e.type === 'completed_on_time').length;
+      const late = sorted.filter((e) => e.type === 'late').length;
+      const disputes = sorted.filter((e) => e.type === 'dispute').length;
+      const cancelled = sorted.filter((e) => e.type === 'cancelled').length;
+
+      const totalClosed = completedOnTime + late + disputes + cancelled;
+      const onTimeRate = totalClosed ? completedOnTime / totalClosed : 0;
+      const completionVolume = Math.min(totalClosed / 15, 1);
+      const disputePenalty = disputes + cancelled * 0.6;
+
+      const score =
+        baseScore * recencyWeight +
+        onTimeRate * 40 +
+        completionVolume * 10 -
+        disputePenalty * 15;
+
+      return Math.max(0, Math.min(100, Math.round(score)));
+    }
+
+    function consecutiveOnTime(events) {
+      const sorted = [...events].sort((a, b) => b.timestamp - a.timestamp);
+      let streak = 0;
+      for (const event of sorted) {
+        if (event.type === 'completed_on_time') streak += 1;
+        else break;
+      }
+      return streak;
+    }
+
+    function disputeFreeDays(events) {
+      const sorted = [...events]
+        .filter((e) => e.type === 'dispute')
+        .sort((a, b) => b.timestamp - a.timestamp);
+      if (!sorted.length) return 999;
+      return Math.floor((Date.now() - sorted[0].timestamp) / (1000 * 60 * 60 * 24));
+    }
+
+    function historyScores(contractorId, allEvents) {
+      const filtered = allEvents
+        .filter((e) => e.contractorId === contractorId)
+        .sort((a, b) => a.timestamp - b.timestamp);
+      const snapshots = [];
+      for (let i = 0; i < filtered.length; i += 1) {
+        const partial = filtered.slice(0, i + 1);
+        snapshots.push(calcScore(partial));
+      }
+      return snapshots.slice(-10);
+    }
+
+    function Sparkline({ points }) {
+      const w = 180;
+      const h = 44;
+      if (!points.length) return <div className="h-11 rounded bg-slate-100" />;
+      const min = Math.min(...points);
+      const max = Math.max(...points);
+      const spread = Math.max(1, max - min);
+      const coords = points.map((p, i) => {
+        const x = (i / Math.max(1, points.length - 1)) * (w - 8) + 4;
+        const y = h - ((p - min) / spread) * (h - 10) - 5;
+        return `${x},${y}`;
+      }).join(' ');
 
       return (
-        <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 space-y-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">New Job Intake</p>
-              <h2 className="mt-1 text-xl font-extrabold">Submit a repair request</h2>
-            </div>
-            <span className="rounded-full bg-indigo-50 px-3 py-1 text-xs font-bold text-indigo-700">AI-powered routing</span>
-          </div>
-
-          <div className="grid gap-4 md:grid-cols-3">
-            <div className="md:col-span-2">
-              <label className="text-sm font-semibold text-slate-700 block mb-1.5">Describe your issue</label>
-              <textarea
-                value={issue}
-                onChange={e => setIssue(e.target.value)}
-                rows={3}
-                placeholder="Describe what's happening…"
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
-              />
-              <div className="flex flex-wrap gap-2 mt-2">
-                {examples.map(ex => (
-                  <button key={ex} type="button" onClick={() => setIssue(ex)}
-                    className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
-                    {ex.slice(0, 36)}…
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-3">
-              <div>
-                <label className="text-sm font-semibold text-slate-700 block mb-1.5">ZIP code</label>
-                <input value={zip} onChange={e => setZip(e.target.value)}
-                  className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-              </div>
-              <button type="submit"
-                className="w-full rounded-lg bg-indigo-600 px-4 py-2.5 text-sm font-bold text-white hover:bg-indigo-500 transition-colors disabled:opacity-40"
-                disabled={!issue.trim()}>
-                Dispatch Agent →
-              </button>
-            </div>
-          </div>
-        </form>
+        <svg width="100%" viewBox={`0 0 ${w} ${h}`} className="h-11 w-full rounded bg-slate-100 p-1">
+          <polyline fill="none" stroke="#4f46e5" strokeWidth="2.5" points={coords} />
+        </svg>
       );
     }
 
-    // ─── Job Board ───────────────────────────────────────────────────────────────
-    function JobBoard() {
-      const [jobs, setJobs] = React.useState(() => loadJobs());
-      const [filter, setFilter] = React.useState('All');
+    function App() {
+      const [events, setEvents] = React.useState(loadEvents);
+      const [issue, setIssue] = React.useState('Burst pipe in basement, water rising quickly.');
+      const [zip, setZip] = React.useState('01103');
+      const [agentLog, setAgentLog] = React.useState([]);
 
-      const updateJobs = (next) => { setJobs(next); saveJobs(next); };
+      const selectedTrade = parseIssue(issue);
 
-      const submitJob = (issue, zip) => {
-        jobCounter++;
-        const analysis = parseIssue(issue);
-        const matches = rankMatches(analysis.trade, analysis.urgency);
-        const topPro = matches[0] || null;
-        const firstEntry = agentReasoning('Intake', analysis, topPro);
-        const newJob = {
-          id: jobCounter,
-          issue,
-          zip,
-          analysis,
-          topPro,
-          matches,
-          stage: 'Intake',
-          log: firstEntry ? [firstEntry] : [],
-          createdAt: new Date().toISOString(),
-        };
-        updateJobs([newJob, ...jobs]);
-      };
-
-      const advanceJob = (jobId) => {
-        const next = jobs.map(j => {
-          if (j.id !== jobId) return j;
-          const idx = STAGES.indexOf(j.stage);
-          if (idx >= STAGES.length - 1) return j;
-          const nextStage = STAGES[idx + 1];
-          const entry = agentReasoning(nextStage, j.analysis, j.topPro);
-          return { ...j, stage: nextStage, log: [...j.log, ...(entry ? [entry] : [])] };
+      const contractorStats = React.useMemo(() => {
+        return contractors.map((c) => {
+          const mine = events.filter((e) => e.contractorId === c.id);
+          const score = calcScore(mine);
+          const history = historyScores(c.id, events);
+          return { ...c, score, history, events: mine };
         });
-        updateJobs(next);
-      };
+      }, [events]);
 
-      const clearCompleted = () => updateJobs(jobs.filter(j => j.stage !== 'Completed'));
+      const matches = contractorStats
+        .filter((c) => c.trade === selectedTrade)
+        .sort((a, b) => (b.score - a.score) || (a.eta - b.eta))
+        .slice(0, 3);
 
-      const filters = ['All', 'Intake', 'Matching', 'Booked', 'In Progress', 'Completed'];
-      const visible = filter === 'All' ? jobs : jobs.filter(j => j.stage === filter);
-      const counts = STAGES.reduce((acc, s) => ({ ...acc, [s]: jobs.filter(j => j.stage === s).length }), {});
+      function addEvent(contractorId, type, rating = 5) {
+        const now = Date.now();
+        const jobId = `job-${contractorId}-${now}`;
+
+        const beforeEvents = events.filter((e) => e.contractorId === contractorId);
+        const beforeScore = calcScore(beforeEvents);
+
+        const next = [...events, { contractorId, jobId, type, timestamp: now, rating }];
+        saveEvents(next);
+        setEvents(next);
+
+        const afterEvents = [...beforeEvents, { contractorId, jobId, type, timestamp: now, rating }];
+        const afterScore = calcScore(afterEvents);
+        const streak = consecutiveOnTime(afterEvents);
+        const noDisputeDays = disputeFreeDays(afterEvents);
+        const contractor = contractors.find((c) => c.id === contractorId);
+
+        const msg = `${contractor.name} score updated ${beforeScore} → ${afterScore} after ${streak} consecutive on-time completions. Dispute-free for ${noDisputeDays} days.`;
+        setAgentLog((prev) => [msg, ...prev].slice(0, 8));
+      }
+
+      function resetData() {
+        const seeded = seedEvents();
+        saveEvents(seeded);
+        setEvents(seeded);
+        setAgentLog(['Reliability event store reset to seed data.']);
+      }
 
       return (
         <div>
-          {/* Header */}
           <header className="hero-gradient text-white">
-            <div className="mx-auto max-w-6xl px-6 py-14 md:py-20">
-              <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">
-                Agentic Job Flow — Phase 1
-              </p>
-              <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">
-                TrustFix: local pros marketplace<br />with autonomous job dispatch.
-              </h1>
-              <p className="mt-4 max-w-2xl text-lg text-slate-300">
-                Submit a repair request. The agent classifies your issue, ranks candidates by explainable trust scores, and tracks the job lifecycle autonomously.
-              </p>
-              {/* Stats */}
-              <div className="mt-8 flex flex-wrap gap-6">
-                {[['Active jobs', jobs.filter(j => j.stage !== 'Completed').length],
-                  ['Completed', counts['Completed'] || 0],
-                  ['Pros available', PROS.length]].map(([label, val]) => (
-                  <div key={label}>
-                    <p className="text-2xl font-extrabold">{val}</p>
-                    <p className="text-xs text-slate-400 mt-0.5">{label}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="mx-auto max-w-6xl px-6 py-14">
+              <p className="inline-flex rounded-full bg-cyan-400/20 px-3 py-1 text-xs font-bold uppercase tracking-wider text-cyan-200 ring-1 ring-cyan-300/40">Phase 2: Trust Score Engine</p>
+              <h1 className="mt-4 max-w-4xl text-4xl font-extrabold leading-tight md:text-5xl">Live reliability scores powered by real job outcomes.</h1>
+              <p className="mt-4 max-w-3xl text-slate-200">No more fake static scores. Recommendations now change in real time based on completed-on-time, late, dispute, and cancelled events.</p>
             </div>
           </header>
 
-          <main className="mx-auto max-w-6xl px-6 py-10 space-y-8">
-            <NewJobForm onSubmit={submitJob} />
-
-            {/* Job Board */}
-            <section>
-              <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                <div className="flex flex-wrap gap-2">
-                  {filters.map(f => (
-                    <button key={f} onClick={() => setFilter(f)}
-                      className={`rounded-full px-3 py-1 text-xs font-bold transition-colors ${filter === f ? 'bg-indigo-600 text-white' : 'bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-indigo-300'}`}>
-                      {f}{f !== 'All' && counts[f] ? ` · ${counts[f]}` : f === 'All' && jobs.length ? ` · ${jobs.length}` : ''}
-                    </button>
-                  ))}
-                </div>
-                {counts['Completed'] > 0 && (
-                  <button onClick={clearCompleted} className="text-xs text-slate-400 hover:text-red-500 transition-colors">Clear completed</button>
-                )}
+          <main className="mx-auto max-w-6xl space-y-8 px-6 py-10">
+            <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
+              <h2 className="text-xl font-extrabold">AI routing input</h2>
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <label className="text-sm font-semibold text-slate-700">Issue description
+                  <textarea value={issue} onChange={(e) => setIssue(e.target.value)} rows="3" className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                </label>
+                <label className="text-sm font-semibold text-slate-700">ZIP code
+                  <input value={zip} onChange={(e) => setZip(e.target.value)} className="mt-2 w-full rounded-lg border border-slate-300 px-3 py-2" />
+                  <p className="mt-2 text-xs text-slate-500">Detected trade: <strong>{selectedTrade}</strong> • ZIP context {zip}</p>
+                </label>
               </div>
-
-              {visible.length === 0 ? (
-                <div className="rounded-2xl border-2 border-dashed border-slate-200 py-16 text-center">
-                  <p className="text-slate-400 font-semibold">No jobs yet.</p>
-                  <p className="text-sm text-slate-400 mt-1">Submit a request above and the agent will get to work.</p>
-                </div>
-              ) : (
-                <div className="grid gap-4 md:grid-cols-2">
-                  {visible.map(job => (
-                    <JobCard key={job.id} job={job} onAdvance={advanceJob} />
-                  ))}
-                </div>
-              )}
             </section>
 
-            {/* Why this matters */}
             <section className="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200">
-              <h3 className="text-xl font-extrabold">Why this phase matters</h3>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                {[
-                  ['Homeowner confidence', 'Every recommendation shows reasoning, reliability data, and score breakdown — not just a star rating.'],
-                  ['Pro fairness', 'Ranking is driven by on-time rate, job completions, and disputes — not ad budget or placement fees.'],
-                  ['Operational clarity', 'Agent activity logs make every decision visible. Fulfillment teams can audit and improve routing rules over time.'],
-                ].map(([title, desc]) => (
-                  <div key={title} className="rounded-xl bg-slate-50 p-4 ring-1 ring-slate-200">
-                    <p className="font-bold">{title}</p>
-                    <p className="mt-2 text-sm text-slate-700">{desc}</p>
-                  </div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl font-extrabold">Live ranked contractors</h2>
+                <button onClick={resetData} className="rounded-lg border border-slate-300 px-3 py-2 text-sm font-bold text-slate-700">Reset event store</button>
+              </div>
+              <div className="mt-5 grid gap-4 lg:grid-cols-3">
+                {matches.map((c, idx) => (
+                  <article key={c.id} className="rounded-xl border border-slate-200 p-4">
+                    <div className="flex items-center justify-between">
+                      <p className="font-bold">#{idx + 1} {c.name}</p>
+                      <span className="rounded-md bg-indigo-50 px-2 py-1 text-xs font-bold text-indigo-700">Score {c.score}</span>
+                    </div>
+                    <p className="mt-1 text-sm text-slate-600">{c.trade} • {c.local} • ETA {c.eta}m</p>
+                    <p className="mt-2 text-xs font-semibold text-slate-500">Last 10 score updates</p>
+                    <Sparkline points={c.history} />
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <button onClick={() => addEvent(c.id, 'completed_on_time', 5)} className="rounded bg-emerald-600 px-2 py-1 text-xs font-bold text-white">+ On-time</button>
+                      <button onClick={() => addEvent(c.id, 'late', 3)} className="rounded bg-amber-500 px-2 py-1 text-xs font-bold text-white">+ Late</button>
+                      <button onClick={() => addEvent(c.id, 'dispute', 1)} className="rounded bg-red-600 px-2 py-1 text-xs font-bold text-white">+ Dispute</button>
+                      <button onClick={() => addEvent(c.id, 'cancelled', 2)} className="rounded bg-slate-600 px-2 py-1 text-xs font-bold text-white">+ Cancelled</button>
+                    </div>
+                  </article>
                 ))}
               </div>
             </section>
 
-            {/* Pilot CTA */}
-            <section className="rounded-2xl bg-slate-900 p-8 text-white">
-              <h3 className="text-2xl font-extrabold">Join phase-2 pilot</h3>
-              <p className="mt-2 text-slate-300">Get invited as a homeowner or local pro while we activate intelligent matching in Springfield.</p>
-              <PilotForm />
+            <section className="rounded-2xl bg-slate-900 p-6 text-white">
+              <h2 className="text-xl font-extrabold">Agent score change log</h2>
+              <p className="mt-1 text-sm text-slate-300">Formula: baseScore × recencyWeight + onTimeRate × 40 + completionVolume × 10 − disputePenalty × 15</p>
+              <ul className="mt-4 space-y-2">
+                {agentLog.length === 0 && <li className="text-sm text-slate-400">No updates yet. Record events to see explanations.</li>}
+                {agentLog.map((line, i) => <li key={i} className="rounded-lg bg-slate-800 px-3 py-2 text-sm">{line}</li>)}
+              </ul>
             </section>
           </main>
         </div>
       );
     }
 
-    function PilotForm() {
-      const [email, setEmail] = React.useState('');
-      const [joined, setJoined] = React.useState(false);
-      const onJoin = (e) => { e.preventDefault(); if (!email) return; setJoined(true); };
-      return (
-        <form onSubmit={onJoin} className="mt-4 flex flex-col gap-3 md:flex-row">
-          <input type="email" required value={email} onChange={e => setEmail(e.target.value)}
-            placeholder="you@example.com"
-            className="w-full rounded-lg border border-slate-600 bg-slate-800 px-4 py-3 text-white placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-400" />
-          <button className="rounded-lg bg-indigo-500 px-5 py-3 font-bold hover:bg-indigo-400 transition-colors whitespace-nowrap">Request invite</button>
-          {joined && <p className="self-center text-sm text-emerald-300">✓ You're on the list.</p>}
-        </form>
-      );
-    }
-
-    ReactDOM.createRoot(document.getElementById('root')).render(<JobBoard />);
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
   </script>
 </body>
 </html>
